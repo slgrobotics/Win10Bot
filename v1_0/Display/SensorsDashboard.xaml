@@ -1,0 +1,16 @@
+﻿<UserControl
+    x:Class="slg.Display.SensorsDashboard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:slg.Display"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignHeight="60"
+    d:DesignWidth="400">
+
+    <StackPanel>
+        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Sensors Dashboard</TextBlock>
+        <TextBlock Name="dataLabel" Text="{x:Bind SensorsDataText}" Style="{ThemeResource CaptionTextBlockStyle}">Sensors Data Here</TextBlock>
+    </StackPanel>
+</UserControl>

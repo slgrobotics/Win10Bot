@@ -1,0 +1,17 @@
+﻿<UserControl
+    x:Class="slg.Display.RobotStateDashboard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:slg.Display"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignHeight="90"
+    d:DesignWidth="400">
+
+    <StackPanel>
+        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Robot State Dashboard</TextBlock>
+        <TextBlock Name="dataLabelState" Style="{ThemeResource CaptionTextBlockStyle}">Robot State Data Here</TextBlock>
+        <TextBlock Name="dataLabelPose" Style="{ThemeResource CaptionTextBlockStyle}">Robot Pose Data Here</TextBlock>
+    </StackPanel>
+</UserControl>

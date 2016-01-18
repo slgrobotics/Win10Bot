@@ -1,0 +1,18 @@
+﻿<UserControl
+    x:Class="slg.Display.RobotDashboard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:slg.Display"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignHeight="300"
+    d:DesignWidth="400">
+
+    <StackPanel Orientation="Vertical">
+        <TextBlock>Robot Dashboard</TextBlock>
+        <local:RumblePad2Dashboard x:Name="rumblePad2Dashboard1" Margin="10,5,5,0" />
+        <local:SensorsDashboard x:Name="sensorsDashboard1" Margin="10,5,5,0" />
+        <local:RobotStateDashboard x:Name="robotStateDashboard1" Margin="10,5,5,0" />
+    </StackPanel>
+</UserControl>
