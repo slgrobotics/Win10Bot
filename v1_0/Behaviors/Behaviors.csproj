@@ -118,7 +118,6 @@
     <Compile Include="BehaviorBackAndTurn.cs" />
     <Compile Include="BehaviorControlledByJoystick.cs" />
     <Compile Include="BehaviorCruise.cs" />
-    <Compile Include="BehaviorFactory.cs" />
     <Compile Include="BehaviorFollowWall.cs" />
     <Compile Include="BehaviorGoToAngle.cs" />
     <Compile Include="BehaviorGoToGoal.cs" />

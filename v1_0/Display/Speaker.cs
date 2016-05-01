@@ -57,6 +57,15 @@ namespace slg.Display
                 }
                 else
                 {
+                    while (speakBufferBlock.Count > 3)
+                    {
+                        Tuple<string, int> sa = null;
+
+                        if (speakBufferBlock.TryReceive(out sa))
+                        {
+                            Debug.WriteLine("Speak: dumped excessive message: " + sa.Item1);
+                        }
+                    }
                     speakBufferBlock.Post(speakArgs);
                 }
             }

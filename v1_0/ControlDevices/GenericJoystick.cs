@@ -70,11 +70,8 @@ namespace slg.ControlDevices
         /// <param name="e"></param>
         private void XBox360Controller_JoystickEvent(object sender, IJoystickSubState e)
         {
-            if(joystickEvent != null)
-            {
-                //Debug.WriteLine("--------- Generic: Joystick Event");
-                joystickEvent(this, e);
-            }
+            //Debug.WriteLine("--------- Generic: Joystick Event");
+            joystickEvent?.Invoke(this, e);
         }
 
         /// <summary>

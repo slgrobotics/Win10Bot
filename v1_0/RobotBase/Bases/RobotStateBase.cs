@@ -87,7 +87,7 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return String.Format("velocity={0} m/s ({1} cm/s)    omega={2} rad/s ({3} degrees/s)   goal at: {4} / {5} degrees, {6} meters",
+            return String.Format("velocity={0} m/s ({1} cm/s)    omega={2} rad/s ({3} degrees/s)    goal at: {4} / {5} degrees, {6} meters",
                                   velocity, Math.Round(velocity * 100.0), omega, Math.Round(omega * 180.0d / Math.PI), goalBearingDegrees, goalBearingRelativeDegrees, goalDistanceMeters);
         }
     }

@@ -102,8 +102,8 @@ namespace slg.Behaviors
             double adjustedAvoidanceTresholdMeters = Math.Max(Math.Min(Math.Abs(avoidanceTresholdMeters * velocity / 0.2d), 0.6d), 0.20d); // limit 0.2 ... 0.6 meters depending on velocity
 
             bool fronIrClose = sensorsData.IrFrontMeters <= tresholdIrAvoidanceMeters;
-            bool leftSonarClose = sensorsData.SonarLeftMeters <= adjustedAvoidanceTresholdMeters;
-            bool rightSonarClose = sensorsData.SonarRightMeters <= adjustedAvoidanceTresholdMeters;
+            bool leftSonarClose = sensorsData.RangerFrontLeftMeters <= adjustedAvoidanceTresholdMeters;
+            bool rightSonarClose = sensorsData.RangerFrontRightMeters <= adjustedAvoidanceTresholdMeters;
             bool leftIrClose = sensorsData.IrLeftMeters <= adjustedAvoidanceTresholdMeters;
             bool rightIrClose = sensorsData.IrRightMeters <= adjustedAvoidanceTresholdMeters;
 
@@ -115,7 +115,7 @@ namespace slg.Behaviors
 
                 if (!leftSideFree && !rightSideFree)
                 {
-                    avoidanceOmega = avoidanceFactorOmega * Math.Sign(sensorsData.SonarLeftMeters - sensorsData.SonarRightMeters);
+                    avoidanceOmega = avoidanceFactorOmega * Math.Sign(sensorsData.RangerFrontLeftMeters - sensorsData.RangerFrontRightMeters);
                     velocity *= avoidanceFactorVelocity;
                     avoid = true;
                 }
@@ -133,7 +133,7 @@ namespace slg.Behaviors
                 }
                 else if (fronIrClose)
                 {
-                    avoidanceOmega = avoidanceFactorOmega * Math.Sign(sensorsData.SonarLeftMeters - sensorsData.SonarRightMeters);
+                    avoidanceOmega = avoidanceFactorOmega * Math.Sign(sensorsData.RangerFrontLeftMeters - sensorsData.RangerFrontRightMeters);
                     velocity *= -avoidanceFactorVelocity;
                     avoid = true;
                 }

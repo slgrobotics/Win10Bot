@@ -78,7 +78,7 @@ namespace slg.RobotBase.Bases
         public bool FiredOn
         {
             get { return firedOn; }
-            set { firedOn = value; FiredOnTimestamp = DateTime.Now; }
+            set { firedOn = value; if (value) { FiredOnTimestamp = DateTime.Now; } }
         }
 
         public DateTime FiredOnTimestamp { get; private set; }

@@ -38,7 +38,8 @@ namespace slg.LibCommunication
     {
         public string Name { get; }
         public string Parameters { get; set; }
-        public string NewLine { get; set; }
+        public string NewLineIn { get; set; }
+        public string NewLineOut { get; set; }
 
         private DeviceInformationCollection deviceCollection;
         private DeviceInformation selectedDevice;

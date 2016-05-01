@@ -103,10 +103,10 @@ namespace slg.Behaviors
 
             double adjustedTresholdStopMeters = Math.Max(Math.Min(Math.Abs(tresholdStopMeters * velocity / 0.2d), 0.4d), 0.15d); // limit 0.15 ... 0.4 meters depending on velocity
 
-            if (velocity > 0.0d && (sensorsData.IrFrontMeters <= tresholdIrStopMeters || sensorsData.SonarLeftMeters <= adjustedTresholdStopMeters || sensorsData.SonarRightMeters <= adjustedTresholdStopMeters))
+            if (velocity > 0.0d && (sensorsData.IrFrontMeters <= tresholdIrStopMeters || sensorsData.RangerFrontLeftMeters <= adjustedTresholdStopMeters || sensorsData.RangerFrontRightMeters <= adjustedTresholdStopMeters))
             {
-                bool leftSideFree = sensorsData.SonarLeftMeters > adjustedTresholdStopMeters && sensorsData.IrLeftMeters > adjustedTresholdStopMeters;      // IR left and right - 10..80 cm
-                bool rightSideFree = sensorsData.SonarRightMeters > adjustedTresholdStopMeters && sensorsData.IrRightMeters > adjustedTresholdStopMeters;
+                bool leftSideFree = sensorsData.RangerFrontLeftMeters > adjustedTresholdStopMeters && sensorsData.IrLeftMeters > adjustedTresholdStopMeters;      // IR left and right - 10..80 cm
+                bool rightSideFree = sensorsData.RangerFrontRightMeters > adjustedTresholdStopMeters && sensorsData.IrRightMeters > adjustedTresholdStopMeters;
 
                 if (!leftSideFree)
                 {

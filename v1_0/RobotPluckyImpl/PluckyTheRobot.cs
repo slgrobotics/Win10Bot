@@ -16,9 +16,8 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
@@ -33,6 +32,7 @@ using slg.Sensors;
 using slg.Behaviors;
 using slg.Mapping;
 using slg.RobotExceptions;
+using slg.RobotAbstraction.Sensors;
 
 namespace slg.RobotPluckyImpl
 {
@@ -47,6 +47,7 @@ namespace slg.RobotPluckyImpl
         private const double WHEEL_RADIUS_METERS = 0.061d;           // actual measured 0.061d
         private const double WHEEL_BASE_METERS = 0.345d;             // actual measured 0.328d
         private const double ENCODER_TICKS_PER_REVOLUTION = 438.0d;  // ticks per one wheel rotation
+        private const int ODOMETRY_SAMPLING_INTERVAL_MS = 20;        // for hardware odometry working in Arduino
 
         /*
          * Some measurements: at motor controller input 100 (full speed) the wheels rotate at 130 rpm.
@@ -72,6 +73,7 @@ namespace slg.RobotPluckyImpl
         private ISensorsController sensorsController;
         private IDrive driveController;
         private IDriveGeometry driveGeometry;
+        private IOdometry odometry;
         private BehaviorFactory behaviorFactory;
 
         private double lng = -117.671550d;
@@ -86,6 +88,8 @@ namespace slg.RobotPluckyImpl
 
         public override ISensorsData currentSensorsData { get { return this.sensorsController.currentSensorsData; } }
 
+        public override IJoystickSubState currentJoystickData { get; set; }
+
         #endregion // Components and variables
 
         #region Lifecycle
@@ -97,13 +101,19 @@ namespace slg.RobotPluckyImpl
             this.loopTimeMs = loopTimeMs;
         }
 
-        public override async Task Init(string[] args)
+
+        // see http://code.jonwagner.com/2012/09/06/best-practices-for-c-asyncawait/
+        //     http://www.c-sharpcorner.com/UploadFile/pranayamr/difference-between-await-and-continuewith-keyword-in-C-Sharp/
+        //     http://code.jonwagner.com/2012/09/04/deadlock-asyncawait-is-not-task-wait/
+        //     https://msdn.microsoft.com/en-us/library/ff963550.aspx  - Parallel Programming book
+
+        public override async Task Init(CancellationTokenSource cts, string[] args)
         {
-            await base.Init(args);    // produces hardwareBrick and sets it for communication
+            await base.Init(cts, args);    // produces hardwareBrick and sets it for communication
 
             joystick.joystickEvent += Joystick_joystickEvent;
 
-            sensorsController = new SensorsController(hardwareBrick, loopTimeMs);
+            sensorsController = new SensorsControllerPlucky(hardwareBrick, loopTimeMs);
             sensorsController.InitSensors();
 
             InitDrive();
@@ -120,7 +130,7 @@ namespace slg.RobotPluckyImpl
             robotPose.direction.heading = headingDegrees;   // will be set to Compass Heading, if available
             robotPose.resetXY();
 
-            await InitComm();     // may throw exceptions
+            await InitComm(cts);     // may throw exceptions
 
             // see what kind of timer we have to measure durations:
             if (Stopwatch.IsHighResolution)
@@ -144,14 +154,14 @@ namespace slg.RobotPluckyImpl
             }
         }
 
-        private async Task InitComm()
+        private async Task InitComm(CancellationTokenSource cts)
         {
             try
             {
                 isCommError = false;
                 isBrickComStarted = false;
 
-                await Task.Factory.StartNew(StartCommunication);
+                await Task.Factory.StartNew(StartCommunication); // we just await the factory, not the thread
 
                 int seconds = 0;
                 while (!isBrickComStarted && !isCommError && seconds < 20)
@@ -163,6 +173,7 @@ namespace slg.RobotPluckyImpl
 
                 if (!isBrickComStarted)
                 {
+                    cts.Cancel();
                     throw new CommunicationException("Could not start communication after " + seconds + " seconds - brick does not open.");
                 }
                 else
@@ -172,16 +183,19 @@ namespace slg.RobotPluckyImpl
             }
             catch (AggregateException aexc)
             {
+                cts.Cancel();
                 isCommError = true;
                 throw new CommunicationException("Could not start communication - brick does not open");
             }
             catch (CommunicationException exc)
             {
+                cts.Cancel();
                 isCommError = true;
                 throw; // new CommunicationException("Could not start communication - brick does not open");
             }
             catch (Exception exc)
             {
+                cts.Cancel();
                 isCommError = true;
                 throw new CommunicationException("Could not start communication - brick does not open");
             }
@@ -189,9 +203,9 @@ namespace slg.RobotPluckyImpl
 
         private void InitDrive()
         {
-            IDifferentialMotorController dmc = produceDifferentialMotorController();
+            IDifferentialMotorController dmc = hardwareBrick.produceDifferentialMotorController();
 
-            IDifferentialDrive ddc = new DifferentialDrive(hardwareBrick)
+            driveController = new DifferentialDrive(hardwareBrick)
             {
                 wheelRadiusMeters = WHEEL_RADIUS_METERS,
                 wheelBaseMeters = WHEEL_BASE_METERS,
@@ -201,10 +215,20 @@ namespace slg.RobotPluckyImpl
                 differentialMotorController = dmc
             };
 
-            driveController = ddc;
-            driveGeometry = ddc;
+            this.odometry = hardwareBrick.produceOdometry(ODOMETRY_SAMPLING_INTERVAL_MS);
+
+            this.odometry.OdometryChanged += ArduinoBrickOdometryChanged;
+
+            driveController.hardwareBrickOdometry = odometry;
+            driveGeometry = (IDifferentialDrive)driveController;
 
             driveController.Init();
+            driveController.Enabled = true;
+        }
+
+        private void ArduinoBrickOdometryChanged(RobotAbstraction.IHardwareComponent sender)
+        {
+            IOdometry odom = (IOdometry)sender;
         }
 
         /// <summary>
@@ -225,10 +249,12 @@ namespace slg.RobotPluckyImpl
 
                 // we can now close lower levels which we created. Communication to the board is still open:
                 sensorsController.Close();
-                driveController.Close();
+                Task.Factory.StartNew(driveController.Close);
 
-                // wait a bit and stop communication with the Hardware Brick (i.e. Element board):
+                // wait a bit (pumping events) and stop communication with the Hardware Brick (i.e. Element board):
                 CloseCommunication();
+
+                hardwareBrick.Close();
             }
         }
 
@@ -239,7 +265,7 @@ namespace slg.RobotPluckyImpl
 
         #endregion // Lifecycle
 
-        #region Control Device command processing
+        #region Control Device (joystick) command processing
 
         /// <summary>
         /// must return promptly
@@ -249,10 +275,11 @@ namespace slg.RobotPluckyImpl
         private void Joystick_joystickEvent(object sender, IJoystickSubState jss)
         {
             jss.IsNew = false;
+            currentJoystickData = (IJoystickSubState)jss.Clone();
             string command = jss.GetCommand();
             if (!string.IsNullOrWhiteSpace(command))
             {
-                Debug.WriteLine("Joystick event: command: " + command);
+                //Debug.WriteLine("Joystick event: command: " + command);
                 this.ControlDeviceCommand(command);
             }
         }
@@ -308,7 +335,9 @@ namespace slg.RobotPluckyImpl
                     ComputeGoal();
 
                     behaviorFactory.produce(BehaviorCompositionType.CruiseAndStop);
+                    //behaviorFactory.produce(BehaviorCompositionType.AroundTheBlock);
                     isDispatcherCommand = false;    // no need for further command processing
+                    //speaker.Speak("Around The Block");
                     speaker.Speak("Cruise control");
                 }
 
@@ -463,7 +492,7 @@ namespace slg.RobotPluckyImpl
         {
             long[] encoderTicks = new long[] { behaviorData.sensorsData.WheelEncoderLeftTicks, behaviorData.sensorsData.WheelEncoderRightTicks };
 
-            driveController.Odometry(behaviorData.robotPose, encoderTicks);
+            driveController.OdometryCompute(behaviorData.robotPose, encoderTicks);
         }
 
         #endregion // Main Loop processing

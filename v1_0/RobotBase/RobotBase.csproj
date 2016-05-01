@@ -118,8 +118,10 @@
     <Compile Include="Data\BehaviorData.cs" />
     <Compile Include="Data\BehaviorsCoordinatorData.cs" />
     <Compile Include="Bases\DriveInputsBase.cs" />
+    <Compile Include="Data\SerialPortTuple.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Interfaces\IBehaviorData.cs" />
+    <Compile Include="Interfaces\IComputerManager.cs" />
     <Compile Include="Interfaces\IDifferentialDrive.cs" />
     <Compile Include="Interfaces\IDifferentialDriveGeometry.cs" />
     <Compile Include="Interfaces\IDrive.cs" />
@@ -136,6 +138,7 @@
     <Compile Include="Interfaces\IRobotState.cs" />
     <Compile Include="Interfaces\ISensorsController.cs" />
     <Compile Include="Interfaces\ISensorsData.cs" />
+    <Compile Include="Interfaces\IDeviceOpener.cs" />
     <Compile Include="Interfaces\ISpeaker.cs" />
     <Compile Include="Bases\PoseBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

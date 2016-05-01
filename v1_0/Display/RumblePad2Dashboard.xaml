@@ -10,7 +10,7 @@
     d:DesignWidth="400">
 
     <StackPanel>
-        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">RumblePad2 Dashboard</TextBlock>
+        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Joystick Inputs</TextBlock>
         <TextBlock Name="dataLabel" Style="{ThemeResource CaptionTextBlockStyle}">Joystick State Here</TextBlock>
     </StackPanel>
 </UserControl>

@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 using slg.RobotBase.Interfaces;
@@ -39,13 +40,17 @@ namespace slg.RobotBase
 
         public abstract ISensorsData currentSensorsData { get; }
 
+        public abstract IJoystickSubState currentJoystickData { get; set; }
+
         public abstract void ControlDeviceCommand(string command);
 
         #endregion // Robot data
 
         #region Lifecycle
 
-        public abstract Task Init(string[] args);
+        protected CancellationTokenSource cancellationTokenSource;
+
+        public abstract Task Init(CancellationTokenSource cts, string[] args);
 
         public AbstractRobot()
         {

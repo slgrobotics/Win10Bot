@@ -25,6 +25,7 @@ using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Events;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotAbstraction.Drive;
+using System.Threading;
 
 namespace slg.RobotAbstraction
 {
@@ -39,13 +40,21 @@ namespace slg.RobotAbstraction
 
         ISonarSRF04 produceSonarSRF04(GpioPinId triggerPin, GpioPinId outputPin, int updateFrequency, double distanceChangedThreshold);
 
+        IParkingSonar produceParkingSonar(int updateFrequency);
+
+        IOdometry produceOdometry(int updateFrequency);
+
         IAnalogSensor produceAnalogSensor(AnalogPinId pin, int updateFrequency, double valueChangedThreshold);
 
         ICompassCMPS03 produceCompassCMPS03(int i2CAddress, int updateFrequency, double headingChangedThreshold);
 
         IWheelEncoder produceWheelEncoder(WheelEncoderId wheelEncoderId, int updateFrequency, int resolution, int countChangedThreshold);
 
+        IDifferentialMotorController produceDifferentialMotorController();
+
         void PumpEvents();
+
+        void Close();
 
         #region Serial Device related
 
@@ -67,7 +76,9 @@ namespace slg.RobotAbstraction
 
         event CommunicationChannelEventHandler CommunicationsStopping;
 
-        Task StartCommunication();
+        event HardwareComponentEventHandler CommunicationStopped;
+
+        Task StartCommunication(CancellationTokenSource cts);
 
         Task StopCommunication();
 

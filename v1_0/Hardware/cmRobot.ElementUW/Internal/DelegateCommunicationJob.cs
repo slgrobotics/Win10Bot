@@ -44,11 +44,8 @@ namespace cmRobot.Element.Internal
 
 		public void ProcessResponse(string response)
 		{
-			if (responseCallback != null)
-			{
-				responseCallback(response);
-			}
-		}
+            responseCallback?.Invoke(response);
+        }
 
 		#endregion
 

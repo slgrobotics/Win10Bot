@@ -25,12 +25,17 @@ using System.Runtime.Serialization;
 using Windows.Devices.HumanInterfaceDevice;
 
 using slg.RobotBase.Interfaces;
+using slg.RobotMath;
 
 namespace slg.ControlDevices
 {
     [DataContract]
     public class JoystickSubState : JoystickRawState, IJoystickSubState
     {
+        private const int JS_DEADZONE = 5000;
+
+        private static double CurrentMaxPower = 100.0d; // Percent, limits the power in "Speed" and "Turn" when emulated throttle is used.
+
         /// <summary>
         /// must be in the range 0...50 - defines what power will be used to compute Speed and Turn when throttle ("Z") position is around minimum
         /// </summary>
@@ -60,13 +65,36 @@ namespace slg.ControlDevices
 
         public double Speed
         {
-            get { return (32767 - Y) * Power / 32768.0d; }
+            get {
+                long y = 32767 - Y;
+                if (Math.Abs(y) < JS_DEADZONE)
+                    return 0.0d;
+
+                if(y > 0L)
+                    y = GeneralMath.map(y, JS_DEADZONE, 32767L, 0L, 32767L);
+                else
+                    y = GeneralMath.map(y, -JS_DEADZONE, -32767L, 0L, -32767L);
+
+                return y * Power / 32768.0d;
+            }
         }
 
         // right turn positive
         public double Turn
         {
-            get { return (X - 32767) * Power / 32768.0d; }
+            get
+            {
+                long x = X - 32767;
+                if (Math.Abs(x) < JS_DEADZONE)
+                    return 0.0d;
+
+                if (x > 0L)
+                    x = GeneralMath.map(x, JS_DEADZONE, 32767L, 0L, 32767L);
+                else
+                    x = GeneralMath.map(x, -JS_DEADZONE, -32767L, 0L, -32767L);
+
+                return x * Power / 32768.0d;
+            }
         }
 
         // throttle 100% - all way forward/up
@@ -86,7 +114,7 @@ namespace slg.ControlDevices
                     default:
                     case "Gamepad":
                         // use emulated throttle via buttons 5 (up) and 7 (down) on RumblePad2:
-                        power = CurrentPower;
+                        power = CurrentMaxPower;
                         break;
                 }
 
@@ -103,7 +131,6 @@ namespace slg.ControlDevices
         {
         }
 
-        private static double CurrentPower = 20.0d;
         /*
         // emulate throttle via buttons 5 and 7 on RumblePad2:
         private static bool clickUp;

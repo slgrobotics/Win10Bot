@@ -118,9 +118,9 @@
     <Compile Include="RangerSensorBase.cs" />
     <Compile Include="RangerSensorIR10_80.cs" />
     <Compile Include="RangerSensorIR20_150.cs" />
+    <Compile Include="RangerSensorParkingSonar.cs" />
     <Compile Include="RangerSensorSonar.cs" />
     <Compile Include="SensorFactory.cs" />
-    <Compile Include="SensorsController.cs" />
     <Compile Include="SensorsData.cs" />
     <Content Include="Properties\Sensors.rd.xml" />
   </ItemGroup>

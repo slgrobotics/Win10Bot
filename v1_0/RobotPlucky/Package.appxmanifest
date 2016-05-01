@@ -1,6 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="7869b8ab-6d98-49b4-96fd-4464ebfcefd2" Publisher="CN=sergei" Version="1.0.0.0" />
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" 
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10"
+         IgnorableNamespaces="uap mp">
+  
+  <Identity Name="RobotPluckyPackage" Publisher="CN=Sergei Grichine" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="7869b8ab-6d98-49b4-96fd-4464ebfcefd2" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>RobotPlucky</DisplayName>
@@ -20,12 +25,22 @@
         </uap:DefaultTile>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
+      <!--Extensions>
+        <uap:Extension Category="windows.appService" EntryPoint="slg.DisplayWebServer.WebServerBGTask">
+          <uap:AppService Name="RobotUiService" />
+        </uap:Extension>
+      </Extensions -->
     </Application>
   </Applications>
   <Capabilities>
+    <iot:Capability Name="systemManagement" />
+    <iot:Capability Name="lowLevelDevices" />
+    <!-- Capability Name="internetClient" / -->
     <Capability Name="internetClient" />
     <Capability Name="internetClientServer" />
     <Capability Name="privateNetworkClientServer" />
+    <!-- Capability Name="internetClientServer" / -->
+    <!-- Capability Name="privateNetworkClientServer" / -->
     <!-- Any generic gaming device  -->
     <DeviceCapability Name="humaninterfacedevice">
       <Device Id="any">

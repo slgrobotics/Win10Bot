@@ -16,6 +16,7 @@
  */
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace slg.RobotBase.Interfaces
@@ -36,13 +37,15 @@ namespace slg.RobotBase.Interfaces
 
         ISensorsData currentSensorsData { get; }
 
+        IJoystickSubState currentJoystickData { get; }
+
         void ControlDeviceCommand(string command);
 
         #endregion // Robot data
 
         #region Lifecycle
 
-        Task Init(string[] args);
+        Task Init(CancellationTokenSource cts, string[] args);
 
         void Close();
 

@@ -31,7 +31,16 @@ namespace slg.RobotAbstraction
     {
         string Name { get; }
         string Parameters { get; set; }
-        string NewLine { get; set; }
+
+        /// <summary>
+        /// for ReadLine operation - we wait for this terminator
+        /// </summary>
+        string NewLineIn { get; set; }
+
+        /// <summary>
+        /// will be added to lines in WriteLine()
+        /// </summary>
+        string NewLineOut { get; set; }
 
         Task Open();
         void DiscardInBuffer();

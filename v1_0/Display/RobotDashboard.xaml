@@ -10,7 +10,7 @@
     d:DesignWidth="400">
 
     <StackPanel Orientation="Vertical">
-        <TextBlock>Robot Dashboard</TextBlock>
+        <!--<TextBlock>Robot Dashboard</TextBlock>-->
         <local:RumblePad2Dashboard x:Name="rumblePad2Dashboard1" Margin="10,5,5,0" />
         <local:SensorsDashboard x:Name="sensorsDashboard1" Margin="10,5,5,0" />
         <local:RobotStateDashboard x:Name="robotStateDashboard1" Margin="10,5,5,0" />

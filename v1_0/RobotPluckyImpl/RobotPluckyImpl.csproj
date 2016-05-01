@@ -113,9 +113,11 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BehaviorFactory.cs" />
     <Compile Include="PluckyTheRobot.cs" />
     <Compile Include="RobotPluckyHardwareBridge.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SensorsControllerPlucky.cs" />
     <Content Include="Properties\RobotPluckyImpl.rd.xml" />
   </ItemGroup>
   <ItemGroup>
@@ -135,9 +137,9 @@
       <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
       <Name>Exceptions</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Hardware\cmRobot.ElementUW\cmRobot.ElementUW.csproj">
-      <Project>{067ac9bd-f314-4e46-bf20-8991337127f0}</Project>
-      <Name>cmRobot.ElementUW</Name>
+    <ProjectReference Include="..\Hardware\ArduinoRobotHardware\ArduinoRobotHardware.csproj">
+      <Project>{a12e149a-fe5c-4bf7-aee9-858df803d52f}</Project>
+      <Name>ArduinoRobotHardware</Name>
     </ProjectReference>
     <ProjectReference Include="..\LibRuntime\LibRuntime.csproj">
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>

@@ -36,6 +36,7 @@ using slg.RobotAbstraction.Events;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotAbstraction.Drive;
 using System.Threading.Tasks;
+using cmRobot.Element.Controllers;
 
 namespace cmRobot.Element
 {
@@ -195,13 +196,13 @@ namespace cmRobot.Element
         /// Starts communication with the Element board.  All Element componenets
         /// will now begin performing their tasks.
         /// </summary>
-        public async Task StartCommunication()
+        public async Task StartCommunication(CancellationTokenSource cts)
 		{
 			if (!communicating)
 			{
                 try { 
                     Debug.WriteLine("Element: Trying port: " + portName);
-				    await commTask.Start(portName, baudRate);
+				    await commTask.Start(portName, baudRate, cts);
 				    communicating = true;
 
                     //this.Units = Units.English;    // distance from sensors delivered in inches
@@ -278,11 +279,8 @@ namespace cmRobot.Element
 					ci = callbacks.Dequeue();
 				}
 
-				if (ci.callback != null)
-				{
-					ci.callback(ci.component);
-				}
-			}
+                ci.callback?.Invoke(ci.component);
+            }
 		}
 
 		/// <summary>
@@ -291,40 +289,47 @@ namespace cmRobot.Element
 		/// ShutDown() is called (presumably in an event handler).
 		/// </summary>
 		/// <include file='Docs\examples.xml' path='examples/example[@name="CommunicationStarted"]'/>
-		public void Run()
-		{
-			Task taskComm = StartCommunication();
-            taskComm.Start();
-            taskComm.Wait();
+		//public void Run()
+		//{
+		//	Task taskComm = StartCommunication();
+  //          taskComm.Start();
+  //          taskComm.Wait();
 
-            while (true)
-			{
-				eventsReady.WaitOne();
-				if (shutdown)
-				{
-					break;
-				}
+  //          while (true)
+		//	{
+		//		eventsReady.WaitOne();
+		//		if (shutdown)
+		//		{
+		//			break;
+		//		}
 
-				PumpEvents();
-			}
-		}
+		//		PumpEvents();
+		//	}
+		//}
 
 		/// <summary>
         /// Stop communication with the Element board and cause the 
 		/// the run loop to be exited.
 		/// </summary>
-		public void ShutDown()
-		{
-			StopCommunication();
-			shutdown = true;
-			eventsReady.Set();
-		}
+		//public void ShutDown()
+		//{
+		//	StopCommunication();
+		//	shutdown = true;
+		//	eventsReady.Set();
+		//}
 
-		/// <summary>
+        public void Close()
+        {
+            shutdown = true;
+            eventsReady.Set();
+        }
+
+
+        /// <summary>
         /// Retrieve the firmware version string from the Element board.
-		/// </summary>
-		/// <returns>The firmware version string.</returns>
-		public string GetFirmwareVersion()
+        /// </summary>
+        /// <returns>The firmware version string.</returns>
+        public string GetFirmwareVersion()
 		{
 			return commTask.EnqueueCommJobAndWait(Priority.Low, "fw");
 		}
@@ -379,6 +384,16 @@ namespace cmRobot.Element
             };
         }
 
+        public IParkingSonar produceParkingSonar(int updateFrequency)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOdometry produceOdometry(int updateFrequency)
+        {
+            throw new NotImplementedException();
+        }
+
         public IAnalogSensor produceAnalogSensor(slg.RobotAbstraction.Ids.AnalogPinId pin, int updateFrequency, double valueChangedThreshold)
         {
             return new AnalogSensor(this)
@@ -409,6 +424,11 @@ namespace cmRobot.Element
                 CountChangedThreshold = countChangedThreshold   // ticks
             };
             return encoder;
+        }
+
+        public IDifferentialMotorController produceDifferentialMotorController()
+        {
+            return new DifferentialMotorController(this);
         }
 
         #endregion // Public Methods
@@ -495,34 +515,22 @@ namespace cmRobot.Element
 
 		private void SignalCommunicationStarted()
 		{
-			if (CommunicationStarted != null)
-			{
-				CommunicationStarted(this);
-			}
-		}
+            CommunicationStarted?.Invoke(this);
+        }
 
 		private void SignalCommunicationStopped()
 		{
-			if (CommunicationStopped != null)
-			{
-				CommunicationStopped(this);
-			}
-		}
+            CommunicationStopped?.Invoke(this);
+        }
 
         private void SignalCommunicationsStarting(ICommunicationChannel sp)
         {
-            if (CommunicationsStarting != null)
-            {
-                CommunicationsStarting(sp);
-            }
+            CommunicationsStarting?.Invoke(sp);
         }
 
         private void SignalCommunicationsStopping(ICommunicationChannel sp)
         {
-            if (CommunicationsStopping != null)
-            {
-                CommunicationsStopping(sp);
-            }
+            CommunicationsStopping?.Invoke(sp);
         }
 
         #endregion // Private Methods

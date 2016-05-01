@@ -33,7 +33,7 @@ namespace cmRobot.Element.Internal
 
         private Semaphore sem = new Semaphore(0);
         private Queue<CommJobInfo>[] jobQueues = new Queue<CommJobInfo>[numQueues];
-        //private Thread workerThread;
+        private Stopwatch stopWatch = new Stopwatch();
 
         #endregion
 
@@ -53,13 +53,13 @@ namespace cmRobot.Element.Internal
 
         #region Public Methods
 
-        public async Task Start(string portName, int baudRate)
+        public async Task Start(string portName, int baudRate, CancellationTokenSource cts)
         {
             Debug.WriteLine("Element:CommunicationTask: Start:   port: {0}  baudRate: {1}", portName, baudRate);
 
             //serialPort = new CommunicationChannelBT();
 
-            serialChannel = new CommunicationChannelSerial()
+            serialChannel = new CommunicationChannelSerial(cts)
             {
                 Name = portName,
                 BaudRate = (uint)baudRate
@@ -71,6 +71,8 @@ namespace cmRobot.Element.Internal
                 await serialChannel.Open();
                 Debug.WriteLine("OK: Element:CommunicationTask: serialPort " + portName + " opened");
 
+                //await Task.Delay(2000);
+
                 // Notify users to initialize any devices
                 // they have before we start processing commands:
                 element.StartingCommunication(serialChannel);
@@ -78,10 +80,7 @@ namespace cmRobot.Element.Internal
                 running = true;
                 ClearJobQueues();
 
-                //workerThread = new Thread(ThreadProc);
-                //workerThread.Start();
-
-                Task workerTask = new Task(ThreadProc);
+                Task workerTask = new Task(() => ThreadProc(cts.Token), cts.Token);
                 workerTask.Start();
 
                 Debug.WriteLine("IP: Element:CommunicationTask: trying to synch up with the board - resetting...");
@@ -99,6 +98,7 @@ namespace cmRobot.Element.Internal
                 // Clear receive buffer out, since the bootloader can send
                 // some junk characters, which might hose subsequent command responses:
                 serialChannel.DiscardInBuffer();
+                stopWatch.Start();
             }
             catch (AggregateException aexc)
             {
@@ -121,8 +121,9 @@ namespace cmRobot.Element.Internal
         public async Task Stop()
 		{
 			running = false;
+            stopWatch.Stop();
 
-			sem.Up();
+            sem.Up();
 
             await Task.Delay(100);
 
@@ -252,7 +253,7 @@ namespace cmRobot.Element.Internal
 			}
 		}
 
-		private async Task ProcessJob(CommJobInfo jobInfo)
+        private async Task ProcessJob(CommJobInfo jobInfo, CancellationToken ct)
 		{
 			// generate the command string for this job
 			string cmd = jobInfo.Job.GenerateCommand();
@@ -262,15 +263,20 @@ namespace cmRobot.Element.Internal
 			// in case we get back NACKs
 			const uint tryThreshold = 3;
 			uint tryCnt;
-			for (tryCnt = 1; tryCnt <= tryThreshold; tryCnt++)
+			for (tryCnt = 1; tryCnt <= tryThreshold && !ct.IsCancellationRequested; tryCnt++)
 			{
 				try
 				{
-					//Debug.WriteLine(String.Format("Comm: Try {0}: cmd: '{1}'", tryCnt, cmd));
-					await SerialPortWriteLine(cmd);
+                    long loopStartTime = stopWatch.ElapsedMilliseconds;  // mark the start time of the cycle.
+                    //Debug.WriteLine(String.Format("Comm: Try {0}: cmd: '{1}'", tryCnt, cmd));
+                    await SerialPortWriteLine(cmd);
 					resp = await SerialPortReadLine();
-					//Debug.WriteLine(String.Format("Comm: Try {0}: '{1}' -> '{2}'", tryCnt, cmd, resp));
+                    long elapsedTime = stopWatch.ElapsedMilliseconds - loopStartTime;
 
+                    //if(cmd.StartsWith("pwm"))
+                    //    Debug.WriteLine(String.Format("Comm: Try {0}: '{1}' -> '{2}'  {3} ms", tryCnt, cmd, resp, elapsedTime));
+
+                    // we usually get an ACK or a number (sensor reading) in response.
 					if (resp != "NACK")
 					{
 						break;
@@ -282,49 +288,55 @@ namespace cmRobot.Element.Internal
 				}
 			}
 
-			if (tryCnt >= tryThreshold)
-			{
-				//TODO: communication exception
-				Debug.WriteLine(String.Format(
-					"#: aborting '{0}' after {1} tries", cmd, tryCnt - 1));
-			}
-			else
-			{
-				// process the response
-				jobInfo.Job.ProcessResponse(resp);
-			}
+            if (!ct.IsCancellationRequested)
+            {
+                if (tryCnt >= tryThreshold)
+                {
+                    //TODO: communication exception
+                    Debug.WriteLine(String.Format(
+                        "#: aborting '{0}' after {1} tries", cmd, tryCnt - 1));
+                }
+                else
+                {
+                    // process the response
+                    jobInfo.Job.ProcessResponse(resp);
+                }
+            }
 		}
 
 		private async Task<string> SerialPortReadLine()
 		{
             // this is specific to Element board:
-			serialChannel.NewLine = "\r\n>";
+			serialChannel.NewLineIn = "\r\n>";
             string str = await serialChannel.ReadLine();
-            return str.Length > 2 ? str.Substring(2) : String.Empty;    // remove trailing CRLF
+            if (str.StartsWith("\r\n"))
+                return str.Length > 2 ? str.Substring(2) : String.Empty;    // remove trailing CRLF, coming from Element board
+            else
+                return str;
 		}
 
 		private async Task SerialPortWriteLine(string s)
 		{
-			serialChannel.NewLine = "\r";
-			await serialChannel.WriteLine(s);
+			serialChannel.NewLineOut = "\r";
+            await serialChannel.WriteLine(s);
 		}
 
-		private async void ThreadProc()
+		private async void ThreadProc(CancellationToken ct)
 		{
-			while (true)
-			{
-				// select the next (highest priority) job
-				CommJobInfo jobInfo = DequeueJob();
-				if (!running)
-				{
-					break;
-				}
+            while (!ct.IsCancellationRequested)
+            {
+                // select the next (highest priority) job
+                CommJobInfo jobInfo = DequeueJob();
+                if (!running)
+                {
+                    break;
+                }
 
                 if (jobInfo != null)
                 {
                     try
                     {
-                        await ProcessJob(jobInfo);
+                        await ProcessJob(jobInfo, ct);
                     }
                     catch (Exception ex)
                     {
@@ -342,7 +354,9 @@ namespace cmRobot.Element.Internal
                 {
                     await Task.Delay(10);
                 }
-			}
+            }
+            running = false;
+            ClearJobQueues();
 		}
 
 #endregion // Private Methods

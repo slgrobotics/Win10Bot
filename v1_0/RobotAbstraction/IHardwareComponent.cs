@@ -23,6 +23,9 @@ using System.Threading.Tasks;
 
 namespace slg.RobotAbstraction
 {
+    /// <summary>
+    /// We just need something to pass around as parameter - usually sender in handlers
+    /// </summary>
     public interface IHardwareComponent
     {
     }

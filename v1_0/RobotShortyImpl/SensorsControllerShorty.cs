@@ -30,10 +30,14 @@ using slg.RobotAbstraction.Events;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotAbstraction.Drive;
 using slg.RobotMath;
+using slg.Sensors;
 
-namespace slg.Sensors
+namespace slg.RobotShortyImpl
 {
-    public class SensorsController : ISensorsController
+    /// <summary>
+    /// Sensor Controller for Element board based robot (Shorty)
+    /// </summary>
+    public class SensorsControllerShorty : ISensorsController
     {
         //
         // some parameters to tune up traffic via 19200 baud serial line to Hardware Brick (i.e. Element board).
@@ -52,7 +56,7 @@ namespace slg.Sensors
         private const short CompassSensitivityThreshold = 1;    // in units 1..255
 
         private const int batterySamplingIntervalMs = 2000; // "frequency" in milliseconds. 
-        private const double batterySensitivityThresholdVolts = 0.2d; // don't go too low - battery voltage drops a lot when motors are operating.
+        private const double batterySensitivityThresholdVolts = 0.0d; // report every reading..
 
         // properties:
         public ISensorsData currentSensorsData { get; set; }
@@ -84,7 +88,7 @@ namespace slg.Sensors
         /// </summary>
         public Dictionary<string, IRangerSensor> RangerSensors = new Dictionary<string, IRangerSensor>();
 
-        public SensorsController(IAbstractRobotHardware brick, double _mainLoopCycleMs)
+        public SensorsControllerShorty(IAbstractRobotHardware brick, double _mainLoopCycleMs)
         {
             hardwareBrick = brick;
             mainLoopCycleMs = _mainLoopCycleMs;
@@ -180,6 +184,12 @@ namespace slg.Sensors
             currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
         }
 
+        public void Close()
+        {
+            Debug.WriteLine("SensorsControllerElement: Close()");
+            //PixyCameraSensor.Close();
+        }
+
         void PixyCameraSensor_PixyCameraBlocksChanged(PixyCamera sender, PixyCameraEventArgs args)
         {
             //Debug.WriteLine("Pixy Camera Event: " + args);
@@ -244,7 +254,7 @@ namespace slg.Sensors
                 heading = GeneralMath.map(val, 0, 507, 180, 360);
             }
 
-            Debug.WriteLine("Ahrs: Value=" + val + "  heading: " + heading);
+            //Debug.WriteLine("Ahrs: Value=" + val + "  heading: " + heading);
 
             lock (currentSensorsDataLock)
             {
@@ -307,33 +317,33 @@ namespace slg.Sensors
                 switch (e.Name)
                 {
                     case "IrLeft":
-                        sensorsData.IrLeftMeters = e.RangeMeters;
+                        sensorsData.IrLeftMeters = e.RangeMeters[0];
                         sensorsData.IrLeftMetersTimestamp = e.TimeTicks;
                         break;
 
                     case "IrRight":
-                        sensorsData.IrRightMeters = e.RangeMeters;
+                        sensorsData.IrRightMeters = e.RangeMeters[0];
                         sensorsData.IrRightMetersTimestamp = e.TimeTicks;
                         break;
 
                     case "IrFront":
-                        sensorsData.IrFrontMeters = e.RangeMeters;
+                        sensorsData.IrFrontMeters = e.RangeMeters[0];
                         sensorsData.IrFrontMetersTimestamp = e.TimeTicks;
                         break;
 
                     case "IrRear":
-                        sensorsData.IrRearMeters = e.RangeMeters;
+                        sensorsData.IrRearMeters = e.RangeMeters[0];
                         sensorsData.IrRearMetersTimestamp = e.TimeTicks;
                         break;
 
                     case "SonarLeft":
-                        sensorsData.SonarLeftMeters = e.RangeMeters;
-                        sensorsData.SonarLeftMetersTimestamp = e.TimeTicks;
+                        sensorsData.RangerFrontLeftMeters = e.RangeMeters[0];
+                        sensorsData.RangerFrontLeftMetersTimestamp = e.TimeTicks;
                         break;
 
                     case "SonarRight":
-                        sensorsData.SonarRightMeters = e.RangeMeters;
-                        sensorsData.SonarRightMetersTimestamp = e.TimeTicks;
+                        sensorsData.RangerFrontRightMeters = e.RangeMeters[0];
+                        sensorsData.RangerFrontRightMetersTimestamp = e.TimeTicks;
                         break;
                 }
 
@@ -352,11 +362,6 @@ namespace slg.Sensors
         public bool IrRangersEnabled { set { RangerIrLeft.Enabled = RangerIrRight.Enabled = RangerIrFront.Enabled = RangerIrRear.Enabled = value; } }
 
         public bool CompassEnabled    { set { Compass.Enabled = value; } }
-
-        public void Close()
-        {
-            //PixyCameraSensor.Close();
-        }
 
         #region Battery Voltage related
 
@@ -385,7 +390,7 @@ namespace slg.Sensors
 
                 IAnalogSensor bv = sender as IAnalogSensor;
 
-                Debug.Assert(bv != null, "SensorsController: batteryVoltage_ValueChanged(): AnalogSensor must be non-null");
+                Debug.Assert(bv != null, "SensorsControllerElement: batteryVoltage_ValueChanged(): AnalogSensor must be non-null");
 
                 // analog pin 5 in Element board is internally tied to 1/3 of the supply voltage level. The 5.0d is 5V, microcontroller's ADC reference and 1024 is range.
 
@@ -446,7 +451,7 @@ namespace slg.Sensors
 
                 IWheelEncoder encoder = sender as IWheelEncoder;
 
-                Debug.Assert(encoder != null, "SensorsController: encoder_CountChanged(): Encoder must be non-null");
+                Debug.Assert(encoder != null, "SensorsControllerElement: encoder_CountChanged(): Encoder must be non-null");
 
                 if (encoder.WheelEncoderId == WheelEncoderId.Encoder2)
                 {

@@ -107,11 +107,8 @@ namespace slg.ControlDevices
             if (!jss.Equals(jssLast))
             {
                 jssLast = jss;
-                if(JoystickDataChanged != null)
-                {
-                    //Debug.WriteLine("--------- HID: Joystick event");
-                    JoystickDataChanged(this, new JoystickEventArgs(jss));
-                }
+                //Debug.WriteLine("--------- HID: Joystick event");
+                JoystickDataChanged?.Invoke(this, new JoystickEventArgs(jss));
             }
         }
 

@@ -22,7 +22,7 @@ namespace slg.RobotBase.Events
     public class RangerSensorEventArgs : EventArgs
     {
         public string Name;
-        public double RangeMeters;
+        public double[] RangeMeters;    // can be a single value or an array from a scanner device
         public long TimeTicks;
     }
 }

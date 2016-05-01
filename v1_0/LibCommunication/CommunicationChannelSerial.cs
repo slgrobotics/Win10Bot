@@ -42,7 +42,8 @@ namespace slg.LibCommunication
         public string Name { get; set; }         // must be set after constructing. Either "COM..." or full device ID
         public uint BaudRate { get; set; }       // must be set after constructing
 
-        public string NewLine { get; set; }      // can be set any time, used for input and output
+        public string NewLineIn { get; set; }
+        public string NewLineOut { get; set; }
         public string Parameters { get; set; }
 
         private SerialDevice serialDevice;
@@ -51,12 +52,14 @@ namespace slg.LibCommunication
         private BufferBlock<String> linesReceivedBuffer;    // helps assemble partial and multiple lines into single lines
         private StringBuilder sb;   // for received characters to be broken into lines, with NewLine as separator
 
-        public CommunicationChannelSerial()
+        public CommunicationChannelSerial(CancellationTokenSource cts)
         {
-            NewLine = "\r"; // default for write and read
+            // We need cancellation token object to close I/O operations when closing the device
+            cancellationTokenSource = cts;
 
-            // Create cancellation token object to close I/O operations when closing the device
-            cancellationTokenSource = new CancellationTokenSource();
+            NewLineIn = "\r";   // default for read
+            NewLineOut = "\r";  // default for write
+
             sb = new StringBuilder();
 
             linesReceivedBuffer = new BufferBlock<string>(new DataflowBlockOptions() { CancellationToken = cancellationTokenSource.Token });
@@ -74,6 +77,7 @@ namespace slg.LibCommunication
                 }
                 catch
                 {
+                    ;
                 }
             }
         }
@@ -105,6 +109,7 @@ namespace slg.LibCommunication
             if (serialDevice != null)
             {
                 SetupSerialDevice(serialDevice);
+                await Task.Delay(2000); // let Arduino reboot due to RTS before we send "reset" over the serial.
                 // start Listen task in a ThreadPool thread:
                 await Task.Factory.StartNew(Listen);
             }
@@ -118,14 +123,14 @@ namespace slg.LibCommunication
 
         private void SetupSerialDevice(SerialDevice serialDevice)
         {
-            serialDevice.Handshake = SerialHandshake.None;
             serialDevice.BaudRate = BaudRate;
+            serialDevice.StopBits = SerialStopBitCount.One;
             serialDevice.DataBits = 8;
             serialDevice.Parity = SerialParity.None;
-            serialDevice.StopBits = SerialStopBitCount.One;
+            serialDevice.Handshake = SerialHandshake.None;
             serialDevice.IsDataTerminalReadyEnabled = true;
             serialDevice.IsRequestToSendEnabled = false;
-            //serialDevice.ReadTimeout = TimeSpan.FromMilliseconds(300);
+            serialDevice.ReadTimeout = TimeSpan.FromMilliseconds(3);      // default 5 seconds, we want instant response from Arduino boards
             serialDevice.WriteTimeout = TimeSpan.FromMilliseconds(10000);
         }
 
@@ -160,18 +165,18 @@ namespace slg.LibCommunication
                             sb.Append(line);
 
                             string sbs = sb.ToString();
-                            int nlIndex = sbs.IndexOf(NewLine);
+                            int nlIndex = sbs.IndexOf(NewLineIn);
 
                             if (nlIndex == 0)
                             {
                                 // only newline, just remove it:
-                                sb.Remove(0, NewLine.Length);
+                                sb.Remove(0, NewLineIn.Length);
                             }
                             else if (nlIndex > 0)
                             {
                                 // some characters followed by newline:
                                 line = sbs.Substring(0, nlIndex);
-                                sb.Remove(0, nlIndex + NewLine.Length);
+                                sb.Remove(0, nlIndex + NewLineIn.Length);
                                 await linesReceivedBuffer.SendAsync(line);
                             }
                         }
@@ -221,16 +226,17 @@ namespace slg.LibCommunication
             {
                 byte[] bytes = new byte[bytesToRead];
                 dataReaderObject.ReadBytes(bytes);
-                //Debug.WriteLine("OK: " + bytesToRead + " bytes read from serial port " + name + " : " + bytesToRead);
+                //Debug.WriteLine("OK: " + bytesToRead + " bytes read from serial port : " + bytesToRead);
 
                 string readIn = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
 
-                //string readIn = dataReaderObject.ReadString(bytesToRead); -- this causes exception "No mapping for the Unicode character exists in the target multi-byte code page."
+                //string readIn = dataReaderObject.ReadString(bytesToRead); //-- this causes exception on Element "No mapping for the Unicode character exists in the target multi-byte code page."
 
-                //Debug.WriteLine("OK: " + bytesToRead + " bytes read from serial port " + name + " : " + readIn);
+                //Debug.WriteLine("OK: " + bytesToRead + " bytes read from serial port : '" + readIn + "'");
 
                 return readIn;
             }
+            Debug.WriteLine("OK: zero bytes to read from serial port");
             return string.Empty;
         }
 
@@ -240,11 +246,16 @@ namespace slg.LibCommunication
         {
             try
             {
-                string line = await linesReceivedBuffer.ReceiveAsync();
+                string line = await linesReceivedBuffer.ReceiveAsync(cancellationTokenSource.Token);
 
-                //Debug.WriteLine("OK: '" + line + "' - read from serial port " + name);
+                //Debug.WriteLine("OK: '" + line + "' - read from serial port ");
 
                 return line;
+            }
+            catch (TaskCanceledException ex)
+            {
+                Debug.WriteLine("OK: CommunicationChannelSerial: ReadLine() " + ex.Message);
+                return "\r\n0";
             }
             catch (Exception ex)
             {
@@ -263,10 +274,14 @@ namespace slg.LibCommunication
                 //Debug.WriteLine("IP: WriteLine('" + str + "')");
 
                 // Launch the WriteAsync task to perform the write
-                await WriteAsync(str + NewLine, cancellationTokenSource.Token, dataWriteObject);
+                await WriteAsync(str + NewLineOut, cancellationTokenSource.Token, dataWriteObject);
 
                 dataWriteObject.DetachStream();
                 dataWriteObject = null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                Debug.WriteLine("OK: CommunicationChannelSerial: WriteLine() " + ex.Message);
             }
             catch (Exception ex)
             {
@@ -289,7 +304,7 @@ namespace slg.LibCommunication
                 UInt32 bytesWritten = await storeAsyncTask;
                 //if (bytesWritten > 0)
                 //{
-                //    Debug.WriteLine("OK: " + bytesWritten + " bytes written to serial port " + name);
+                //    Debug.WriteLine("OK: " + bytesWritten + " bytes written to serial port: '" + str + "'");
                 //}
             }
             catch (Exception ex)

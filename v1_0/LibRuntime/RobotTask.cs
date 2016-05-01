@@ -35,10 +35,7 @@ namespace slg.LibRuntime
 
         public virtual void OnControlDeviceCommand(ControlDeviceEventArgs e)
         {
-            if (controlDeviceEvent != null)
-            {
-                controlDeviceEvent(this, e);
-            }
+            controlDeviceEvent?.Invoke(this, e);
         }
 
         public virtual IEnumerator<ISubsumptionTask> Execute()

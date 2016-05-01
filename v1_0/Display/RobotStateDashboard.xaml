@@ -10,7 +10,7 @@
     d:DesignWidth="400">
 
     <StackPanel>
-        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Robot State Dashboard</TextBlock>
+        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Robot State</TextBlock>
         <TextBlock Name="dataLabelState" Style="{ThemeResource CaptionTextBlockStyle}">Robot State Data Here</TextBlock>
         <TextBlock Name="dataLabelPose" Style="{ThemeResource CaptionTextBlockStyle}">Robot Pose Data Here</TextBlock>
     </StackPanel>

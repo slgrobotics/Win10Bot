@@ -23,6 +23,8 @@ using System.Diagnostics;
 
 using slg.RobotBase.Interfaces;
 using slg.RobotMath;
+using slg.RobotAbstraction.Sensors;
+using slg.Mapping;
 
 namespace slg.Drive
 {
@@ -63,6 +65,12 @@ namespace slg.Drive
             set { _driveInputs = new DifferentialDriveInputs(value); }
         }
 
+        public IOdometry hardwareBrickOdometry { get; set; }    // can be null - then software computation is used
+
+        public DifferentialDriveOdometry odometry = new DifferentialDriveOdometry();    // for software computation
+
+        public abstract bool Enabled { get; set; }
+
         public abstract void Init();
 
         public abstract void Close();
@@ -77,27 +85,34 @@ namespace slg.Drive
         /// </summary>
         public abstract void Stop();
 
-        public DifferentialDriveOdometry odometry = new DifferentialDriveOdometry();
-
         /// <summary>
         /// calculates robot pose change based on current wheel encoders ticks
         /// </summary>
         /// <param name="robotPose">will be adjusted based on wheels travel</param>
         /// <param name="encoderTicks">wheel encoder ticks - left, right...</param>
-        public void Odometry(IRobotPose robotPose, long[] encoderTicks)
+        public void OdometryCompute(IRobotPose robotPose, long[] encoderTicks)
         {
-            Displacement disp = odometry.Process(encoderTicks);
-
-            if (disp.halfPhi != 0.0d || disp.dCenter != 0.0d)
+            if (hardwareBrickOdometry != null)
             {
-                double theta = robotPose.Theta + disp.halfPhi;   // radians
+                robotPose.X = hardwareBrickOdometry.XMeters;
+                robotPose.Y = hardwareBrickOdometry.YMeters;
+                robotPose.Theta = Direction.to360fromRad(hardwareBrickOdometry.ThetaRadians);
+            }
+            else
+            {
+                Displacement disp = odometry.Process(encoderTicks);
 
-                // calculate displacement in the middle of the turn:
-                double dX = disp.dCenter * Math.Cos(theta);      // meters
-                double dY = disp.dCenter * Math.Sin(theta);      // meters
+                if (disp.halfPhi != 0.0d || disp.dCenter != 0.0d)
+                {
+                    double theta = robotPose.Theta + disp.halfPhi;   // radians
 
-                robotPose.translate(dX, dY);
-                robotPose.rotate(disp.halfPhi * 2.0d);
+                    // calculate displacement in the middle of the turn:
+                    double dX = disp.dCenter * Math.Cos(theta);      // meters
+                    double dY = disp.dCenter * Math.Sin(theta);      // meters
+
+                    robotPose.translate(dX, dY);
+                    robotPose.rotate(disp.halfPhi * 2.0d);
+                }
             }
         }
 
@@ -106,7 +121,14 @@ namespace slg.Drive
         /// </summary>
         public void OdometryReset()
         {
-            odometry.Reset();
+            if(hardwareBrickOdometry != null)
+            {
+                hardwareBrickOdometry.ZeroAll();
+            }
+            else
+            {
+                odometry.Reset();
+            }
         }
     }
 }

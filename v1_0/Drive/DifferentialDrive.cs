@@ -43,9 +43,26 @@ namespace slg.Drive
             this.hardwareBrick = brick;
         }
 
+        private bool _enabled = false;
+
+        public override bool Enabled {
+            get { return _enabled; }
+            set
+            {
+                differentialMotorController.Enabled = value;
+                if (hardwareBrickOdometry != null)
+                {
+                    hardwareBrickOdometry.Enabled = value;
+                }
+            }
+        }
+
         public override void Init()
         {
-            odometry.Init(wheelBaseMeters, wheelRadiusMeters, encoderTicksPerRevolution);
+            if (hardwareBrickOdometry == null)
+            {
+                odometry.Init(wheelBaseMeters, wheelRadiusMeters, encoderTicksPerRevolution);
+            }
         }
 
         public override void Close()

@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  IgnorableNamespaces="uap mp">
+
+  <Identity
+    Name="5bdba0a8-9641-4245-8569-a98547bf46d4"
+    Publisher="CN=sergei"
+    Version="1.0.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="5bdba0a8-9641-4245-8569-a98547bf46d4" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>RobotShorty</DisplayName>
+    <PublisherDisplayName>sergei</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="RobotShorty.App">
+      <uap:VisualElements
+        DisplayName="RobotShorty"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        Description="RobotShorty"
+        BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+      <!--Extensions>
+        <uap:Extension Category="windows.appService" EntryPoint="slg.DisplayWebServer.WebServerBGTask">
+          <uap:AppService Name="RobotUiService" />
+        </uap:Extension>
+      </Extensions -->
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Capability Name="internetClient" / -->
+    <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <!-- Capability Name="internetClientServer" / -->
+    <!-- Capability Name="privateNetworkClientServer" / -->
+    <!-- Any generic gaming device  -->
+    <DeviceCapability Name="humaninterfacedevice">
+      <Device Id="any">
+        <Function Type="usage:0001 0004"/>
+        <Function Type="usage:0001 0005"/>
+      </Device>
+    </DeviceCapability>
+    <!-- see https://github.com/dotMorten/NmeaParser/wiki/Using-in-a-Windows-Universal-App-(SerialPort) -->
+    <!-- see https://ms-iot.github.io/content/en-US/win10/samples/SerialSample.htm -->
+    <DeviceCapability Name="serialcommunication" >
+      <Device Id="any">
+        <Function Type="name:serialPort"/>
+      </Device>
+    </DeviceCapability>
+    <DeviceCapability Name="bluetooth.rfcomm">
+      <Device Id="any">
+        <Function Type="name:serialPort"/>
+      </Device>
+    </DeviceCapability>
+  </Capabilities>
+</Package>

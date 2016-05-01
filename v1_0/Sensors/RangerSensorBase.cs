@@ -52,13 +52,17 @@ namespace slg.Sensors
 
         public event EventHandler<RangerSensorEventArgs> distanceChangedEvent;
 
-        protected void OnDistanceChanged()
+        /// <summary>
+        /// we can pass a single value here, or an array from a scanning device
+        /// </summary>
+        /// <param name="ranges"></param>
+        protected void OnDistanceChanged(double[] ranges = null)
         {
-            EventHandler<RangerSensorEventArgs> handler = distanceChangedEvent;
-            if (handler != null)
-            {
-                handler(this, new RangerSensorEventArgs() { Name = this.Name, RangeMeters = this.RangeMeters, TimeTicks = this.Timestamp.Ticks });
-            }
+            distanceChangedEvent?.Invoke(this, new RangerSensorEventArgs() {
+                                                    Name = this.Name,
+                                                    RangeMeters = ranges == null ? new double[] { this.RangeMeters } : ranges,
+                                                    TimeTicks = this.Timestamp.Ticks
+                                        });
         }
     }
 }

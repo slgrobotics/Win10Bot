@@ -169,11 +169,8 @@ namespace slg.ControlDevices
             }
 
             // if we have subscribers, notify them:
-            if(joystickEvent != null)
-            {
-                //Debug.WriteLine("--------- 360: Controller_JoystickDataChanged");
-                joystickEvent(this, (IJoystickSubState)jssCurrent.Clone());
-            }
+            //Debug.WriteLine("--------- 360: Controller_JoystickDataChanged");
+            joystickEvent?.Invoke(this, (IJoystickSubState)jssCurrent.Clone());
 
             //Debug.WriteLine("JoystickSubState: Speed=" + jssCurrent.Speed + "  Turn=" + jssCurrent.Turn);
         }

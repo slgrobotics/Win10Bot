@@ -29,6 +29,8 @@ namespace slg.RobotAbstraction.Drive
     /// </summary>
     public interface IDifferentialMotorController
     {
+        bool Enabled { get; set; }
+
         /// <summary>
         /// communicate current properties (speeds) to motors, let them roll
         /// </summary>

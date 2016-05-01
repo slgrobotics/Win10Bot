@@ -10,7 +10,7 @@
     d:DesignWidth="400">
 
     <StackPanel>
-        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Sensors Dashboard</TextBlock>
+        <TextBlock Style="{ThemeResource BaseTextBlockStyle}">Sensors Data</TextBlock>
         <TextBlock Name="dataLabel" Text="{x:Bind SensorsDataText}" Style="{ThemeResource CaptionTextBlockStyle}">Sensors Data Here</TextBlock>
     </StackPanel>
 </UserControl>

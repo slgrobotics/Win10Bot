@@ -1,0 +1,33 @@
+﻿<Page
+    x:Class="RobotShorty.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:RobotShorty"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    xmlns:display="using:slg.Display"
+    d:DesignHeight="526" d:DesignWidth="791" >
+
+    <StackPanel Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel Name="Toolbar" Orientation="Horizontal" Height="32px">
+            <TextBlock Text="Serial Port:" Margin="10,2,5,0" TextAlignment="Right" VerticalAlignment="Center" Name="label1" />
+            <ComboBox Name="SerialPortComboBox" Width="200" VerticalAlignment="Center" />
+            <Button Content="Open" Name="OpenCloseButton" Width="75" VerticalAlignment="Center" Click="OpenCloseButton_Click" />
+        </StackPanel>
+        <StackPanel Name="Statusbar" Orientation="Horizontal" Height="32px" >
+            <TextBlock Text="status" Margin="10,5,0,0" Name="StatusLabel" />
+        </StackPanel>
+        <StackPanel Name="RobotDashboard" Orientation="Horizontal" Height="200px" Margin="10,5,0,0" >
+            <display:RobotDashboard Name="robotDashboard1" />
+        </StackPanel>
+        <Popup x:Name="ErrorPopup"  Width="300px" Height="200px">
+            <Canvas Background="Red">
+                <TextBlock Name="ErrorTextBlock" Canvas.Left="80px" Canvas.Top="30px">Error</TextBlock>
+                <Button Content="Exit" Width="100px" Canvas.Left="100px" Canvas.Top="160px" Click="ExitPopupButton_Click"/>
+            </Canvas>
+        </Popup>
+        <!-- Voice -->
+        <MediaElement x:Name="media"/>
+    </StackPanel>
+</Page>

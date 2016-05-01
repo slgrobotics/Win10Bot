@@ -24,13 +24,15 @@ using System.Diagnostics;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
 using slg.LibRuntime;
+using slg.Behaviors;
 
-namespace slg.Behaviors
+namespace slg.RobotPluckyImpl
 {
     public enum BehaviorCompositionType
     {
         JoystickAndStop,
         CruiseAndStop,
+        AroundTheBlock,
         Escape
     }
 
@@ -46,6 +48,11 @@ namespace slg.Behaviors
         private IDriveGeometry driveGeometry;
 
         private ISpeaker speaker;
+
+        // related to "Around the block":
+        DateTime activatedFW;
+        double initialCompassHeadingDegrees;
+        bool isFinishedFW;
 
         public BehaviorFactory(SubsumptionTaskDispatcher disp, IDriveGeometry driveGeom, ISpeaker speaker)
         {
@@ -70,6 +77,8 @@ namespace slg.Behaviors
             }
 
             Debug.WriteLine("BehaviorFactory: produce() : all dispatcher tasks closed, creating new combo '" + compType + "'");
+
+            isFinishedFW = false;
 
             switch (compType)
             {
@@ -108,6 +117,9 @@ namespace slg.Behaviors
                     {
                         name = "BehaviorFollowWall",
                         speaker = this.speaker,
+                        cruiseSpeed = 15.0d,
+                        avoidanceTurnFactor = 50.0d,
+                        //distanceToWallMeters = 0.17d,
                         //distanceToWallMeters = 0.25d,
                         //BehaviorDeactivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
                         //BehaviorTerminateCondition = bd => { return bd.sensorsData.IrRearMeters < 0.2d; }
@@ -138,6 +150,73 @@ namespace slg.Behaviors
                     BehaviorBase.getCoordinatorData().ClearGrabbingBehavior();
                     break;
 
+                case BehaviorCompositionType.AroundTheBlock:
+
+                    BehaviorFollowWall bfw = new BehaviorFollowWall(driveGeometry)
+                    {
+                        name = "BehaviorFollowWall",
+                        speaker = this.speaker,
+                        cruiseSpeed = 15.0d,
+                        avoidanceTurnFactor = 50.0d,
+                        distanceToWallMeters = 0.17d,
+                        //BehaviorDeactivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                        //BehaviorTerminateCondition = bd => { return bd.sensorsData.IrRearMeters < 0.2d; }
+                    };
+
+                    bfw.BehaviorDeactivateCondition = bd =>
+                    {
+                        isFinishedFW =
+                            //(DateTime.Now - bfw.FiredOnTimestamp).TotalSeconds > 5.0d
+                            (DateTime.Now - activatedFW).TotalSeconds > 5.0d
+                            //&& Math.Abs(DirectionMath.to180(bd.sensorsData.CompassHeadingDegrees - initialCompassHeadingDegrees)) < 5.0d;
+
+                            && Math.Abs(bd.robotPose.X) < 0.08d   // forward
+                            && Math.Abs(bd.robotPose.Y) < 0.25d;  // sides
+
+                        return isFinishedFW;
+                    };
+
+                    bfw.BehaviorActivateCondition = bd => {
+
+                        if (isFinishedFW) return false;
+
+                        double irLeftMeters = bd.sensorsData.IrLeftMeters;
+                        double sonarLeftMeters = bd.sensorsData.RangerFrontLeftMeters;
+                        double irRightMeters = bd.sensorsData.IrRightMeters;
+                        double sonarRightMeters = bd.sensorsData.RangerFrontRightMeters;
+
+                        double activateDistanceToWallMeters = bfw.distanceToWallMeters * 1.5d;
+
+                        if (irLeftMeters < activateDistanceToWallMeters || (irLeftMeters < bfw.distanceToWallMeters && sonarLeftMeters < bfw.distanceToWallMeters))
+                        {
+                            bfw.fireOnLeft = true;
+                        }
+
+                        if (irRightMeters < activateDistanceToWallMeters || (irRightMeters < bfw.distanceToWallMeters && sonarRightMeters < bfw.distanceToWallMeters))
+                        {
+                            bfw.fireOnRight = true;
+                        }
+
+                        if (bfw.fireOnLeft || bfw.fireOnRight)
+                        {
+                            // remember the initial CompassHeadingDegrees:
+                            initialCompassHeadingDegrees = bd.sensorsData.CompassHeadingDegrees;
+                            activatedFW = DateTime.Now;
+                        }
+
+                        return bfw.fireOnLeft || bfw.fireOnRight;
+                    };
+                    subsumptionDispatcher.Dispatch(bfw);
+
+                    subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    {
+                        name = "BehaviorStop",
+                        speaker = this.speaker,
+                        BehaviorActivateCondition = bd => { return true; }
+                    });
+
+                    break;
+
                 case BehaviorCompositionType.JoystickAndStop:
 
                     subsumptionDispatcher.Dispatch(new BehaviorControlledByJoystick(driveGeometry) {
@@ -145,17 +224,17 @@ namespace slg.Behaviors
                         speaker = this.speaker
                     });
 
-                    subsumptionDispatcher.Dispatch(new BehaviorAvoidObstacles(driveGeometry)
-                    {
-                        name = "BehaviorAvoidObstacles",
-                        speaker = this.speaker
-                    });
+                    //subsumptionDispatcher.Dispatch(new BehaviorAvoidObstacles(driveGeometry)
+                    //{
+                    //    name = "BehaviorAvoidObstacles",
+                    //    speaker = this.speaker
+                    //});
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop()
-                    {
-                        name = "BehaviorStop",
-                        speaker = this.speaker
-                    });
+                    //subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    //{
+                    //    name = "BehaviorStop",
+                    //    speaker = this.speaker
+                    //});
                     break;
 
                 case BehaviorCompositionType.Escape:

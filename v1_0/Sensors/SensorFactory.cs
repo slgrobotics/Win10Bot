@@ -32,6 +32,7 @@ namespace slg.Sensors
         RangerSensorIR10_80,
         RangerSensorIR20_150,
         RangerSensorSonar,
+        RangerSensorParkingSonar
     }
 
     /// <summary>
@@ -51,6 +52,9 @@ namespace slg.Sensors
 
                 case RangerSensorFactoryProducts.RangerSensorSonar:
                     return new RangerSensorSonar(name, pose, brick, (GpioPinId)args[0], (GpioPinId)args[1], (int)args[2], (double)args[3]);
+
+                case RangerSensorFactoryProducts.RangerSensorParkingSonar:
+                    return new RangerSensorParkingSonar(name, pose, brick, (int)args[0]);
 
                 default:
                     throw new NotImplementedException("Error: RangerSensorFactory cannot produce ranger type " + productType);

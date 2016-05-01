@@ -19,10 +19,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-
 using System.Diagnostics;
-using Windows.Devices.SerialCommunication;
 
 using slg.RobotBase;
 using slg.RobotAbstraction;
@@ -30,9 +29,8 @@ using slg.RobotAbstraction.Drive;
 using slg.RobotAbstraction.Events;
 using slg.RobotExceptions;
 
-// specific Hardware Brick (i.e. Element board):
-using cmRobot.Element;  
-using cmRobot.Element.Controllers;
+// specific Hardware Brick (i.e. Arduino based board, see PluckyWheels sketch):
+using slg.ArduinoRobotHardware;
 
 namespace slg.RobotPluckyImpl
 {
@@ -51,36 +49,31 @@ namespace slg.RobotPluckyImpl
         /// produces hardwareBrick and sets it for communication
         /// </summary>
         /// <param name="args"></param>
-        public override async Task Init(string[] args)
+        public override async Task Init(CancellationTokenSource cts, string[] args)
         {
+            cancellationTokenSource = cts;
+
             string port = args[0];  // for Element board based robot we must pass serial port name here
 
             // create an instance of ConcreteRobotHardware:
-            hardwareBrick = new Element()
+            hardwareBrick = new ArduinoBrick(cts)
             {
                 PortType = CommunicationPortType.Serial,
                 PortName = port,
-                BaudRate = 19200,
-                AsyncCallbacksEnabled = false   // false requires explicit call to PumpEvents from the run loop
+                BaudRate = 115200 // 19200
             };
 
-            Debug.WriteLine("OK: RobotPluckyHardwareBridge: created Element hardware brick on port " + port);
+            Debug.WriteLine("OK: RobotPluckyHardwareBridge: created Arduino hardware brick on port " + port);
 
             hardwareBrick.CommunicationsStarting += new CommunicationChannelEventHandler(bridge_CommunicationsStarting);
             hardwareBrick.CommunicationsStopping += new CommunicationChannelEventHandler(bridge_CommunicationsStopping);
             hardwareBrick.CommunicationStarted += new HardwareComponentEventHandler(bridge_CommunicationStarted);
         }
 
-        public IDifferentialMotorController produceDifferentialMotorController()
-        {
-            IDifferentialMotorController dmc = new DifferentialMotorController((Element)hardwareBrick);
-            return dmc;
-        }
-
-        protected async void StartCommunication()
+        protected async Task StartCommunication()
         {
             try { 
-                await hardwareBrick.StartCommunication();
+                await hardwareBrick.StartCommunication(cancellationTokenSource);
                 isBrickComStarted = true;
             }
             catch (AggregateException aexc)

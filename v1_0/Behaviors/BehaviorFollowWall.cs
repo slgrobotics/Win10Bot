@@ -39,8 +39,9 @@ namespace slg.Behaviors
         public double factorConcaveCornerTurn = 0.5d;  // sharp turn when in a concave corner (rad/sec)
         public double factorCornerTurnTrigger = 1.5d;  // triggers a sharp turn when in a concave corner, using front sonar (rad/sec)
 
-        private bool fireOnLeft = false;
-        private bool fireOnRight = false;
+        public bool fireOnLeft = false;
+        public bool fireOnRight = false;
+
         private DateTime started;
         private DateTime lostTheWallLast = DateTime.MinValue;
         private DateTime deactivatedLast = DateTime.MinValue;
@@ -58,9 +59,9 @@ namespace slg.Behaviors
                 //if (BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("FollowWall"))
                 {
                     double irLeftMeters = bd.sensorsData.IrLeftMeters;
-                    double sonarLeftMeters = behaviorData.sensorsData.SonarLeftMeters;
+                    double sonarLeftMeters = behaviorData.sensorsData.RangerFrontLeftMeters;
                     double irRightMeters = bd.sensorsData.IrRightMeters;
-                    double sonarRightMeters = behaviorData.sensorsData.SonarRightMeters;
+                    double sonarRightMeters = behaviorData.sensorsData.RangerFrontRightMeters;
 
                     double activateDistanceToWallMeters = distanceToWallMeters * 0.9d;
 
@@ -166,7 +167,7 @@ namespace slg.Behaviors
                 string savedEnablingRequest = getCoordinatorData().EnablingRequest;
                 getCoordinatorData().EnablingRequest = string.Empty;
 
-                //Debug.WriteLine("+++++++++++++++++++++");
+                //Debug.WriteLine("+++++++++++++++++++++" + (fireOnLeft ? "Left" : "Right") + " Wall Following activated");
                 //speaker.Speak((fireOnLeft ? "Left" : "Right") + " Wall Following");
 
                 // keep following the wall till we are told to deactivate:
@@ -176,7 +177,7 @@ namespace slg.Behaviors
                     double avoidanceOmega = 0.0d;
                     bool wallAhead = false;
 
-                    double forwardSensorMeters = Math.Min(Math.Min(behaviorData.sensorsData.SonarLeftMeters, behaviorData.sensorsData.SonarRightMeters), behaviorData.sensorsData.IrFrontMeters);
+                    double forwardSensorMeters = Math.Min(Math.Min(behaviorData.sensorsData.RangerFrontLeftMeters, behaviorData.sensorsData.RangerFrontRightMeters), behaviorData.sensorsData.IrFrontMeters);
 
                     if (fireOnLeft)
                     {
@@ -197,15 +198,15 @@ namespace slg.Behaviors
                     requestedVelocity = ToVelocity(wallAhead ? 0.0d : cruiseSpeed);
                     requestedOmega = avoidanceOmega;
 
-                    //Debug.WriteLine("BehaviorFollowWall: requestedVelocity=" + requestedVelocity + "    avoidanceOmega=" + avoidanceOmega);
+                    Debug.WriteLine("BehaviorFollowWall: requestedVelocity=" + requestedVelocity + "    avoidanceOmega=" + avoidanceOmega + "  X=" + behaviorData.robotPose.X + "  Y=" + behaviorData.robotPose.Y + "    seconds:" + (DateTime.Now - FiredOnTimestamp).TotalSeconds);
 
                     setVelocityAndOmega(requestedVelocity, requestedOmega);
 
                     yield return RobotTask.Continue;
                 }
 
-                //speaker.Speak("Lost the wall");
-                
+                speaker.Speak("Deactivated Follow Wall");
+
                 Debug.WriteLine("BehaviorFollowWall: deactivated: " + getCoordinatorData().EnablingRequest + " ------------------------------------");
 
                 // in case the enablingRequest is stuck, clear it:

@@ -93,6 +93,10 @@
     <Content Include="ApplicationInsights.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Page Include="Styles\Styles.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
@@ -135,6 +139,10 @@
       <Project>{df5797d7-1709-4c05-88de-312fced2ae41}</Project>
       <Name>ControlDevices</Name>
     </ProjectReference>
+    <ProjectReference Include="..\DisplayWebServer\DisplayWebServer.csproj">
+      <Project>{64c61cce-d901-4191-8ab5-25273b6bfafa}</Project>
+      <Name>DisplayWebServer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Display\Display.csproj">
       <Project>{335df153-a33e-4628-b9e3-03d30863cca6}</Project>
       <Name>Display</Name>
@@ -167,6 +175,11 @@
       <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
       <Name>Sensors</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="WindowsIoT, Version=10.0.10586.0">
+      <Name>Windows IoT Extensions for the UWP</Name>
+    </SDKReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

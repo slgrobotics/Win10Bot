@@ -29,34 +29,12 @@ namespace slg.Display
             dataBlock = new ActionBlock<ISensorsData>(v => { Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { SensorsDataText = v.ToString(); }).AsTask().Wait(); });
 
             this.InitializeComponent();
-
-            //Task task = Task.Factory.StartNew(() => {
-            //    int i = 0;
-            //    while (true)
-            //    {
-            //        dataBlock.Post("new sensor data: " + i);
-            //        //Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => { SensorsDataText = "new sensor data: " + i; }).AsTask().Wait();
-            //        i++;
-            //        Task.Delay(1000).Wait();
-            //    }
-            //});
         }
 
         private ActionBlock<ISensorsData> dataBlock;
 
         public ActionBlock<ISensorsData> SensorsDataBlock { get { return dataBlock; } }
 
-        //public string SensorsDataText { get; private set; }
-
         public string SensorsDataText { get { return dataLabel.Text; }  private set { dataLabel.Text = value; } }
-
-        //public static readonly DependencyProperty SensorsDataTextProperty = DependencyProperty.Register("SensorsDataText", typeof(string), typeof(SensorsDashboard), new PropertyMetadata(null));
-        //public string SensorsDataText
-        //{
-        //    get { return (string)GetValue(SensorsDataTextProperty); }
-        //    set {
-        //        SetValue(SensorsDataTextProperty, "figa: " + value);
-        //    }
-        //}
     }
 }

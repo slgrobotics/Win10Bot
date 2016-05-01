@@ -168,7 +168,7 @@ namespace slg.Behaviors
         /// <returns>true if we need to finish</returns>
         private bool ShiftTerminateCondition()
         {
-            double forwardSensorMeters = Math.Min(Math.Min(behaviorData.sensorsData.SonarLeftMeters, behaviorData.sensorsData.SonarRightMeters), behaviorData.sensorsData.IrFrontMeters);
+            double forwardSensorMeters = Math.Min(Math.Min(behaviorData.sensorsData.RangerFrontLeftMeters, behaviorData.sensorsData.RangerFrontRightMeters), behaviorData.sensorsData.IrFrontMeters);
 
             return MustExit || MustTerminate || forwardSensorMeters < 0.25d || (DateTime.Now - started).TotalSeconds >= 3.0d;   // another second after the turn
         }

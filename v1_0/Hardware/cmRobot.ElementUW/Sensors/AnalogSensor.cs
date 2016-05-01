@@ -133,7 +133,7 @@ namespace cmRobot.Element.Sensors
 		protected virtual void OnSetValue(int value)
 		{
 			this.value = value;
-			if (Math.Abs(value - lastValue) > valueThreshold)
+			if (valueThreshold == 0 || Math.Abs(value - lastValue) > valueThreshold)
 			{
 				lastValue = value;
 				Element.SignalEvent(AnalogValueChanged, this);

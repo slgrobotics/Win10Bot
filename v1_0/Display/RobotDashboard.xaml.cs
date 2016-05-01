@@ -50,6 +50,13 @@ namespace slg.Display
             robotStateDashboard1.PoseDataBlock.Post(robotPose);
         }
 
+        public void DisplayRobotJoystick(IJoystickSubState joystickData)
+        {
+            //Debug.WriteLine("RobotDashboard: DisplayRobotJoystick()   joystick: " + joystickData.ToString());
+
+            rumblePad2Dashboard1.JoystickDataBlock.Post(joystickData);
+        }
+
         public void DisplayRobotSensors(ISensorsData sensorsData)
         {
             //Debug.WriteLine("RobotDashboard: DisplayRobotSensors()   sensors: " + sensorsData.ToString());

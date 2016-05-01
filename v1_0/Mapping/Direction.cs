@@ -34,7 +34,7 @@ namespace slg.Mapping
         double? distanceToGoalMeters { get; set; }
         double? course { get; set; }
         double? bearingRelative { get; set; }
-        double turnRelative { get; }
+        double? turnRelative { get; }
     }
 
     [DataContract]
@@ -112,7 +112,7 @@ namespace slg.Mapping
             }
         }
 
-        public double turnRelative
+        public double? turnRelative
         {
             get
             {
@@ -124,7 +124,7 @@ namespace slg.Mapping
                 }
                 else
                 {
-                    return 0.0d;
+                    return null;
                 }
             }
         }

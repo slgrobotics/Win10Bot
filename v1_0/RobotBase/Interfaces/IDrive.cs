@@ -15,12 +15,17 @@
  * although doing so, donating and contributing is always appreciated
  */
 
+using slg.RobotAbstraction.Sensors;
 
 namespace slg.RobotBase.Interfaces
 {
     public interface IDrive
     {
         IDriveInputs driveInputs { get; set; }
+
+        IOdometry hardwareBrickOdometry { get; set; }       // can be null, then software calculation is used
+
+        bool Enabled { get; set; }
 
         void Init();
 
@@ -46,6 +51,6 @@ namespace slg.RobotBase.Interfaces
         /// </summary>
         /// <param name="robotPose">will be adjusted based on wheels travel</param>
         /// <param name="encoderTicks">wheel encoder ticks - left, right...</param>
-        void Odometry(IRobotPose robotPose, long[] encoderTicks);
+        void OdometryCompute(IRobotPose robotPose, long[] encoderTicks);
     }
 }

@@ -24,7 +24,9 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Text;
 
+using Windows.System;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
@@ -36,14 +38,17 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Windows.Web.Http;
 using Windows.Devices.SerialCommunication;
 using Windows.Devices.Enumeration;
 
 using slg.RobotPluckyImpl;
 using slg.RobotBase.Interfaces;
+using slg.RobotBase.Data;
 using slg.RobotExceptions;
 using slg.ControlDevices;
 using slg.Display;
+using slg.DisplayWebServer;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -52,17 +57,19 @@ namespace RobotPlucky
     /// <summary>
     /// PluckyTheRobot implementation - head (view) class
     /// </summary>
-    public sealed partial class MainPage : Page, ISpeaker
+    public sealed partial class MainPage : Page, ISpeaker, IDeviceOpener, IComputerManager
     {
         private PluckyTheRobot plucky;
-        private string currentPort;
+        private string currentSerialPort;
         private const int desiredLoopTimeMs = 50;   // will be used for timer and as encoders Sampling Interval.
+        private const int HTTP_SERVER_PORT = 9098;
 
         private bool isWorkerRunning = false;
 
         private CancellationTokenSource tokenSource;
         private ISpeaker speakerImpl;
         private IJoystickController joystick;
+        private HttpServer httpServer;
 
         #region Lifecycle
 
@@ -76,15 +83,56 @@ namespace RobotPlucky
             this.Unloaded += MainPage_Unloaded;
         }
 
-        private void MainPage_Loaded(object sender, RoutedEventArgs e)
+        private async void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            FillSerialPortComboBox();
+            List<SerialPortTuple> serialPorts = await GetAvailableSerialPorts();
+
+            SerialPortComboBox.DisplayMemberPath = "Name";
+            SerialPortComboBox.SelectedValuePath = "Id";
+            SerialPortComboBox.ItemsSource = serialPorts;
+
             speakerImpl = new Speaker(media);
             joystick = new GenericJoystick();
+            InitWebServer(serialPorts);
+        }
+
+        private void InitWebServer(List<SerialPortTuple> serialPorts)
+        {
+            httpServer = new HttpServer(HTTP_SERVER_PORT);
+            IAsyncAction asyncAction = Windows.System.Threading.ThreadPool.RunAsync(
+                async (workItem) =>
+                {
+                    httpServer.StartServer(this, this, serialPorts);
+
+                    // test loop:
+                    while(true)
+                    {
+                        await Task.Delay(5000);
+                        using (HttpClient client = new HttpClient())
+                        {
+                            try
+                            {
+                                // inside the same process isolation does not block access. Other processes on the same computer are blocked.
+                                // use another computer to hit this URL in the browser: 
+                                string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/robotUI.html"));
+                                //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/robotUI.html"));
+                                Debug.WriteLine("HttpClient: got response: " + response); 
+                            }
+                            catch (Exception exc)
+                            {
+                                // possibly a 404
+                                Debug.WriteLine("Error: HttpClient: got " + exc);
+                            }
+                        }
+                    }
+                });
         }
 
         private void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            if(httpServer != null)
+                httpServer.Dispose();
+
             if (isWorkerRunning)
             {
                 StopWorker();
@@ -100,7 +148,7 @@ namespace RobotPlucky
         /// <summary>
         /// initialize SerialPortComboBox with names of all available serial ports
         /// </summary>
-        private async void FillSerialPortComboBox()
+        private async Task<List<SerialPortTuple>> GetAvailableSerialPorts()
         {
             /*
             SEE https://social.msdn.microsoft.com/Forums/windowsapps/en-US/0c638b8e-482d-462a-97e6-4d8bc86d8767/uwp-windows-10-apps-windowsdevicesserialcommunicationserialdevice-class-not-working?forum=wpdevelop
@@ -163,15 +211,7 @@ namespace RobotPlucky
                 StatusLabel.Text = "there are no serial devices representing Hardware Brick";
             }
 
-            SerialPortComboBox.DisplayMemberPath = "Name";
-            SerialPortComboBox.SelectedValuePath = "Id";
-            SerialPortComboBox.ItemsSource = ports;
-        }
-
-        class SerialPortTuple
-        {
-            public string Name { get; set; }
-            public string Id { get; set; }
+            return ports;
         }
 
         #endregion // UI initialization
@@ -190,6 +230,11 @@ namespace RobotPlucky
             OpenCloseButton.IsEnabled = true;
         }
 
+        private void ShutdownButtonButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShutdownComputer();
+        }
+
         /// <summary>
         /// click on the button that selects the serial port and then starts backround worker, thus starting the robot.
         /// </summary>
@@ -197,53 +242,71 @@ namespace RobotPlucky
         /// <param name="e"></param>
         private async void OpenCloseButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenCloseButton.IsEnabled = false;
+            try {
+                OpenCloseButton.IsEnabled = false;
 
-            if (isWorkerRunning)
-            {
-                Speak("disconnecting");
-                await Task.Delay(100);
-
-                // cancel the worker process, dispose of plucky - but don't wait for it:
-                Task task = Task.Factory.StartNew(StopWorker);
-                await Task.Delay(1000);
-
-                ResetOpenCloseButton("");
-            }
-            else
-            {
-                currentPort = "" + SerialPortComboBox.SelectedValue;
-
-                if (!string.IsNullOrWhiteSpace(currentPort))
+                if (isWorkerRunning)
                 {
-                    Speak("connecting");
+                    Speak("disconnecting");
+                    await Task.Delay(100);
+
+                    // cancel the worker process, dispose of plucky - but don't wait for it:
+                    Task task = Task.Factory.StartNew(StopWorker);
                     await Task.Delay(1000);
 
-                    // start the worker process:
-                    await StartWorker();
-
-                    if (!isWorkerRunning || plucky.isCommError)
-                    {
-                        StatusLabel.Text = plucky.ToString() + " cannot connect to hardware brick";
-                        ResetOpenCloseButton("");
-                        Speak("Hardware brick does not connect");
-                        plucky.Close();
-                        plucky = null;
-                    }
-                    else
-                    {
-                        // plucky is connected to hardware brick.
-                        SerialPortComboBox.IsEnabled = false;
-                        OpenCloseButton.Content = "Close";
-                        EnableOpenCloseButton("");
-                    }
+                    ResetOpenCloseButton("");
                 }
                 else
                 {
-                    Speak("Select serial port");
-                    StatusLabel.Text = "Please select serial port to connect to " + plucky.ToString() + " hardware brick";
-                    ResetOpenCloseButton("");
+                    currentSerialPort = "" + SerialPortComboBox.SelectedValue;
+
+                    if (!string.IsNullOrWhiteSpace(currentSerialPort))
+                    {
+                        Speak("connecting");
+                        await Task.Delay(1000);
+
+                        // start the worker process:
+                        await StartWorker();
+
+                        if (!isWorkerRunning || plucky.isCommError)
+                        {
+                            StatusLabel.Text = plucky.ToString() + " cannot connect to hardware brick";
+                            ResetOpenCloseButton("");
+                            Speak("Hardware brick does not connect");
+                            if (plucky != null)
+                            {
+                                plucky.Close();
+                                plucky = null;
+                            }
+                        }
+                        else
+                        {
+                            // plucky is connected to hardware brick.
+                            SerialPortComboBox.IsEnabled = false;
+                            OpenCloseButton.Content = "Close";
+                            EnableOpenCloseButton("");
+                        }
+
+                        if (httpServer != null)
+                            httpServer.robot = plucky;
+                    }
+                    else
+                    {
+                        Speak("Select serial port");
+                        StatusLabel.Text = "Please select serial port to connect to " + plucky + " hardware brick";
+                        ResetOpenCloseButton("");
+                    }
                 }
+            }
+            catch (Exception exc)
+            {
+                Speak("Oops");
+                StatusLabel.Text = exc.Message;
+                Debug.WriteLine("Exception: " + exc);
+                ResetOpenCloseButton("");
+                plucky = null;
+                if (httpServer != null)
+                    httpServer.robot = plucky;
             }
         }
 
@@ -259,17 +322,101 @@ namespace RobotPlucky
 
         #endregion // UI control events
 
+        #region IDeviceOpener implementation
+
+        public async Task<bool> OpenDevice(string deviceId)
+        {
+            currentSerialPort = deviceId;
+
+            Speak("connecting");
+            await Task.Delay(1000);
+
+            try {
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () => await doOpenDevice(deviceId));
+
+                return isWorkerRunning && plucky != null && !plucky.isCommError;
+            }
+            catch (Exception exc)
+            {
+                Speak("could not connect");
+            }
+            return false;
+        }
+
+        private async Task<bool> doOpenDevice(string deviceId)
+        {
+            try
+            {
+                // start the worker process:
+                await StartWorker();
+
+                if (!isWorkerRunning || plucky == null || plucky.isCommError)
+                {
+                    Speak("Hardware brick does not connect");
+                    if (plucky != null)
+                    {
+                        plucky.Close();
+                        plucky = null;
+                    }
+                }
+                else
+                {
+                    // plucky is connected to hardware brick.
+                }
+
+                if (httpServer != null)
+                    httpServer.robot = plucky;
+
+                return true;
+            }
+            catch (Exception exc)
+            {
+                Speak("could not connect");
+            }
+            return false;
+        }
+
+        public bool IsDeviceOpen { get; set; }
+
+        public DateTime LastConnectionTime { get; set; }
+
+        public async Task<bool> CloseDevice()
+        {
+            try {
+                if (isWorkerRunning && plucky != null)
+                {
+                    Speak("Disconnecting Plucky");
+                    await Task.Factory.StartNew(StopWorker);
+                }
+                else
+                {
+                    // plucky is not connected to hardware brick.
+                }
+
+                return true;
+            }
+            catch (Exception exc)
+            {
+                Speak("could not disconnect");
+            }
+            return false;
+        }
+
+        #endregion // IDeviceOpener implementation
+
         #region Worker Threads management
 
         private async Task StartWorker()
         {
             try
             {
+                IsDeviceOpen = false;
+
                 tokenSource = new CancellationTokenSource();
                 isWorkerRunning = true;
 
                 plucky = new PluckyTheRobot(this, joystick, desiredLoopTimeMs);
-                await plucky.Init(new string[] { currentPort });  // may throw exceptions
+                await plucky.Init(tokenSource, new string[] { currentSerialPort });  // may throw exceptions
 
                 if (plucky.isCommError)
                 {
@@ -278,23 +425,27 @@ namespace RobotPlucky
                 else
                 {
                     await InitializeTickers();
-                    lastConnectionTime = DateTime.Now;
+                    LastConnectionTime = DateTime.Now;
+                    IsDeviceOpen = true;
                 }
             }
             catch (AggregateException exc)
             {
                 isWorkerRunning = false;
                 Debug.WriteLine("Error: StartWorker(): AggregateException - " + exc);
+                throw;
             }
             catch (CommunicationException exc)
             {
                 isWorkerRunning = false;
                 Debug.WriteLine("Error: StartWorker(): CommunicationException - " + exc);
+                throw;
             }
             catch (Exception exc)
             {
                 isWorkerRunning = false;
                 Debug.WriteLine("Error: StartWorker(): " + exc);
+                throw;
             }
         }
 
@@ -302,7 +453,8 @@ namespace RobotPlucky
         {
             try
             {
-                StopTickers().Wait();
+                IsDeviceOpen = false;
+                StopTickers().Wait();   // triggers tokenSource.Cancel()
             }
             catch (AggregateException exc)
             {
@@ -322,6 +474,9 @@ namespace RobotPlucky
                 plucky.Dispose();
                 plucky = null;
             }
+
+            if (httpServer != null)
+                httpServer.robot = plucky;
 
             isWorkerRunning = false;
         }
@@ -424,14 +579,34 @@ namespace RobotPlucky
 
         #endregion // Tickers to periodically run robot logic and service control devices (joystick).
 
+        #region IComputerManager implementation
+
+        /// <summary>
+        /// IComputerManager implementation
+        /// </summary>
+        public void ShutdownComputer()
+        {
+            try
+            {
+                ShutdownManager.BeginShutdown(ShutdownKind.Shutdown, TimeSpan.FromSeconds(1.0));
+                Speak("shutting down");
+            }
+            catch
+            {
+                Speak("Cannot shut down this computer");
+            }
+        }
+
+        #endregion // IComputerManager implementation
+
         #region Display all data on the UI
 
         private DateTime lastBatteryVoltageAlarmed = DateTime.Now;
+        private DateTime lastJoystickDisplayed = DateTime.Now;
         private DateTime lastSensorsDisplayed = DateTime.Now;
         private DateTime lastStateDisplayed = DateTime.Now;
         private DateTime lastPoseDisplayed = DateTime.Now;
         private DateTime lastPosePrinted = DateTime.Now;
-        private DateTime lastConnectionTime = DateTime.Now;
 
         /// <summary>
         /// all logging and displaying in UI is handled here. It is a thread safe function.
@@ -453,6 +628,12 @@ namespace RobotPlucky
                 robotDashboard1.DisplayRobotPose(plucky.robotPose);     // maps current pose
             }
 
+            if ((Now - lastJoystickDisplayed).TotalSeconds > 1.0d && plucky.currentJoystickData != null)
+            {
+                lastJoystickDisplayed = Now;
+                robotDashboard1.DisplayRobotJoystick(plucky.currentJoystickData);
+            }
+
             if ((Now - lastSensorsDisplayed).TotalSeconds > 1.0d)
             {
                 lastSensorsDisplayed = Now;
@@ -470,7 +651,7 @@ namespace RobotPlucky
                 lastStateDisplayed = Now;
                 robotDashboard1.DisplayRobotState(plucky.robotState, plucky.robotPose);
 
-                TimeSpan sinceStart = Now - lastConnectionTime;
+                TimeSpan sinceStart = Now - LastConnectionTime;
                 string[] split = sinceStart.ToString().Split(new char[] { '.' });   // remove milliseconds
 
                 // update our status text:

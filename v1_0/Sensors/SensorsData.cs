@@ -28,6 +28,7 @@ namespace slg.Sensors
     /// </summary>
     public class SensorsData : ISensorsData
     {
+        // typical IR sensors location - middle on each side:
         public double IrLeftMeters { get; set; }
         public long IrLeftMetersTimestamp { get; set; }
 
@@ -40,11 +41,18 @@ namespace slg.Sensors
         public double IrRearMeters { get; set; }
         public long IrRearMetersTimestamp { get; set; }
 
-        public double SonarLeftMeters { get; set; }
-        public long SonarLeftMetersTimestamp { get; set; }
+        // typical sonars or parking sonar locations - corners: 
+        public double RangerFrontLeftMeters { get; set; }
+        public long RangerFrontLeftMetersTimestamp { get; set; }
 
-        public double SonarRightMeters { get; set; }
-        public long SonarRightMetersTimestamp { get; set; }
+        public double RangerFrontRightMeters { get; set; }
+        public long RangerFrontRightMetersTimestamp { get; set; }
+
+        public double RangerRearLeftMeters { get; set; }
+        public long RangerRearLeftMetersTimestamp { get; set; }
+
+        public double RangerRearRightMeters { get; set; }
+        public long RangerRearRightMetersTimestamp { get; set; }
 
         // all Ranger Sensors are in this Dictionary (by name) for easy access to Pose and min/max ranges from SensorsData:
         public IDictionary<string, IRangerSensor> RangerSensors { get; set; }
@@ -79,7 +87,7 @@ namespace slg.Sensors
 
             IrLeftMeters = IrRightMeters = IrFrontMeters = IrRearMeters = 10.0d;
 
-            SonarLeftMeters = SonarRightMeters = 10.0d;
+            RangerFrontLeftMeters = RangerFrontRightMeters = RangerRearLeftMeters = RangerRearRightMeters = 10.0d;
 
             CompassHeadingDegrees = 0.0d;
 
@@ -109,11 +117,17 @@ namespace slg.Sensors
             this.IrRearMeters = src.IrRearMeters;
             this.IrRearMetersTimestamp = src.IrRearMetersTimestamp;
 
-            this.SonarLeftMeters = src.SonarLeftMeters;
-            this.SonarLeftMetersTimestamp = src.SonarLeftMetersTimestamp;
+            this.RangerFrontLeftMeters = src.RangerFrontLeftMeters;
+            this.RangerFrontLeftMetersTimestamp = src.RangerFrontLeftMetersTimestamp;
 
-            this.SonarRightMeters = src.SonarRightMeters;
-            this.SonarRightMetersTimestamp = src.SonarRightMetersTimestamp;
+            this.RangerFrontRightMeters = src.RangerFrontRightMeters;
+            this.RangerFrontRightMetersTimestamp = src.RangerFrontRightMetersTimestamp;
+
+            this.RangerRearLeftMeters = src.RangerRearLeftMeters;
+            this.RangerRearLeftMetersTimestamp = src.RangerRearLeftMetersTimestamp;
+
+            this.RangerRearRightMeters = src.RangerRearRightMeters;
+            this.RangerRearRightMetersTimestamp = src.RangerRearRightMetersTimestamp;
 
             this.WheelEncoderLeftTicks = src.WheelEncoderLeftTicks;
             this.WheelEncoderRightTicks = src.WheelEncoderRightTicks;
@@ -138,15 +152,20 @@ namespace slg.Sensors
         public override string ToString()
         {
             // "Timestamp" properties are updated when data changes, not when a valid reading comes in.
-            bool hasBatteryLevel = (DateTime.Now - this.timestamp).TotalSeconds < 60.0d;    // bad if no sensors changed in 60 seconds
+            bool hasBatteryLevel = (DateTime.Now.Ticks - this.BatteryVoltageTimestamp) / TimeSpan.TicksPerSecond < 60L; // bad if battery sensor didn't report in 60 seconds
  
             string batteryLevel = hasBatteryLevel ? string.Format("{0:0.00}V ({1:0.00}V per cell)", BatteryVoltage, BatteryVoltage / 3.0d) : "Unknown";
 
             bool isPixyValid = IsPixyDataValid();
 
-            return string.Format("IR:   left: {0:0.00}   right: {1:0.00}   front: {2:0.00}   rear: {3:0.00}     SONAR:   left: {4:0.00}   right: {5:0.00}     ENCODERS:   left: {6}   right: {7}   \r\nBATTERY: {8}   COMPASS: {9:0}   Pixy: {10:0} {11:0}",
-                                    IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters, SonarLeftMeters, SonarRightMeters, WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
-                                    (isPixyValid ? PixyCameraBearingDegrees : null), (isPixyValid ? PixyCameraInclinationDegrees : null));
+            //return string.Format("IR:   left: {0:0.00}   right: {1:0.00}   front: {2:0.00}   rear: {3:0.00}     SONAR:   left: {4:0.00}   right: {5:0.00}     ENCODERS:   left: {6}   right: {7}   \r\nBATTERY: {8}   COMPASS: {9:0}   Pixy: {10:0} {11:0}",
+            //                        IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters, RangerFrontLeftMeters, RangerFrontRightMeters, WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
+            //                        (isPixyValid ? PixyCameraBearingDegrees : null), (isPixyValid ? PixyCameraInclinationDegrees : null));
+
+            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    \r\nBATTERY: {6}   COMPASS: {7:0}",
+                                    RangerFrontLeftMeters, RangerFrontRightMeters, RangerRearLeftMeters, RangerRearRightMeters, 
+                                    WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees
+                                    );
         }
     }
 }

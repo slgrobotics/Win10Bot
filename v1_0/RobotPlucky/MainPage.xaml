@@ -9,19 +9,22 @@
     xmlns:display="using:slg.Display"
     d:DesignHeight="526" d:DesignWidth="791" >
 
-    <StackPanel Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <StackPanel Name="Toolbar" Orientation="Horizontal" Height="32px">
-            <TextBlock Text="Serial Port:" Width="100px" Height="22" Margin="0,2,5,0" TextAlignment="Right"  VerticalAlignment="Center" Name="label1" />
-            <ComboBox Canvas.Left="89" Canvas.Top="14" Height="32px" Name="SerialPortComboBox" Width="120" />
-            <Button Content="Open" Name="OpenCloseButton" Width="75" Height="32px" Click="OpenCloseButton_Click" Canvas.Left="215" Canvas.Top="14" />
+    <StackPanel Style="{StaticResource MyStackPanelStyle}">
+        <StackPanel Name="Toolbar" Style="{StaticResource MyToolbarStyle}">
+            <TextBlock Text="Serial Port:" Name="label1" Style="{StaticResource MyLabelStyle}" />
+            <ComboBox Name="SerialPortComboBox" Width="400" Style="{StaticResource MyComboBoxStyle}" />
+            <Button Content="Open" Name="OpenCloseButton" Click="OpenCloseButton_Click" 
+                    Style="{StaticResource MyButtonStyle}" Foreground="#FF28031C" />
+            <Button Content="Shutdown" Name="ShutdownButton" Click="ShutdownButtonButton_Click" HorizontalContentAlignment="Right"
+                    Style="{StaticResource MyButtonStyle}" Foreground="#FF28031C" />
         </StackPanel>
-        <StackPanel Name="Statusbar" Orientation="Horizontal" Height="32px" >
-            <TextBlock Text="status" Margin="10,5,0,0" Name="StatusLabel" />
+        <StackPanel Name="Statusbar" Orientation="Horizontal" Height="32px" Style="{StaticResource MyStatusbarStyle}">
+            <TextBlock Text="status" Margin="10,0,0,0" Name="StatusLabel" Style="{StaticResource MyTextStyle}" />
         </StackPanel>
-        <StackPanel Name="RobotDashboard" Orientation="Horizontal" Height="200px" Margin="10,5,0,0" >
+        <StackPanel Name="RobotDashboard" Orientation="Horizontal" Height="200px" Style="{StaticResource MyRobotDashboardStyle}">
             <display:RobotDashboard Name="robotDashboard1" />
         </StackPanel>
-        <Popup x:Name="ErrorPopup"  Width="300px" Height="200px">
+        <Popup x:Name="ErrorPopup"  Style="{StaticResource MyErrorPopupStyle}">
             <Canvas Background="Red">
                 <TextBlock Name="ErrorTextBlock" Canvas.Left="80px" Canvas.Top="30px">Error</TextBlock>
                 <Button Content="Exit" Width="100px" Canvas.Left="100px" Canvas.Top="160px" Click="ExitPopupButton_Click"/>

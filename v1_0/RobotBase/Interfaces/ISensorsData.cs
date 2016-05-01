@@ -22,7 +22,9 @@ namespace slg.RobotBase.Interfaces
 {
     public interface ISensorsData
     {
-        // Rangers' timestamps come from the first handler and are preserved. 
+        // Rangers' timestamps come from the first handler and are preserved.
+
+        // typical IR sensors location - middle on each side:
         double IrLeftMeters  { get; set; }
         long IrLeftMetersTimestamp { get; set; }
 
@@ -35,11 +37,18 @@ namespace slg.RobotBase.Interfaces
         double IrRearMeters { get; set; }
         long IrRearMetersTimestamp { get; set; }
 
-        double SonarLeftMeters  { get; set; }
-        long SonarLeftMetersTimestamp { get; set; }
+        // typical sonars or parking sonar locations - corners: 
+        double RangerFrontLeftMeters  { get; set; }
+        long RangerFrontLeftMetersTimestamp { get; set; }
 
-        double SonarRightMeters { get; set; }
-        long SonarRightMetersTimestamp { get; set; }
+        double RangerFrontRightMeters { get; set; }
+        long RangerFrontRightMetersTimestamp { get; set; }
+
+        double RangerRearLeftMeters { get; set; }
+        long RangerRearLeftMetersTimestamp { get; set; }
+
+        double RangerRearRightMeters { get; set; }
+        long RangerRearRightMetersTimestamp { get; set; }
 
         // all Ranger Sensors are in this Dictionary (by name) for easy access to Pose and min/max ranges from SensorsData:
         IDictionary<string, IRangerSensor> RangerSensors { get; set; }
@@ -62,7 +71,5 @@ namespace slg.RobotBase.Interfaces
 
         // overall timestamp is updated on any copy as well.
         DateTime timestamp    { get; set; }
-
-
     }
 }
