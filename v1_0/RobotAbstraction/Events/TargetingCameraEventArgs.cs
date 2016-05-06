@@ -15,7 +15,23 @@
  * although doing so, donating and contributing is always appreciated
  */
 
+using System;
+
 namespace slg.RobotAbstraction.Events
 {
-    public delegate void HardwareComponentEventHandler(IHardwareComponent sender);
+    public class TargetingCameraEventArgs : EventArgs
+    {
+        public string cameraName;
+        public int x;
+        public int y;
+        public int width;
+        public int height;
+        public int signature;
+        public long timestamp;
+
+        public override string ToString()
+        {
+            return String.Format("{0} {1} {2} {3} {4}", x, y, width, height, signature);
+        }
+    }
 }

@@ -65,9 +65,9 @@ namespace slg.Sensors
         public double CompassHeadingDegrees { get; set; }
 
         // Pixy camera bearing to detected object:
-        public double? PixyCameraBearingDegrees { get; set; }
-        public double? PixyCameraInclinationDegrees { get; set; }
-        public long PixyCameraTimestamp { get; set; }
+        public double? TargetingCameraBearingDegrees { get; set; }
+        public double? TargetingCameraInclinationDegrees { get; set; }
+        public long TargetingCameraTimestamp { get; set; }
 
         private double _BatteryVoltage;
         public double BatteryVoltage { get { return _BatteryVoltage; } set { _BatteryVoltage = value; BatteryVoltageTimestamp = DateTime.Now.Ticks; } }
@@ -134,9 +134,9 @@ namespace slg.Sensors
 
             this.CompassHeadingDegrees = src.CompassHeadingDegrees;
 
-            this.PixyCameraBearingDegrees = src.PixyCameraBearingDegrees;
-            this.PixyCameraInclinationDegrees = src.PixyCameraInclinationDegrees;
-            this.PixyCameraTimestamp = src.PixyCameraTimestamp;
+            this.TargetingCameraBearingDegrees = src.TargetingCameraBearingDegrees;
+            this.TargetingCameraInclinationDegrees = src.TargetingCameraInclinationDegrees;
+            this.TargetingCameraTimestamp = src.TargetingCameraTimestamp;
 
             this._BatteryVoltage = src.BatteryVoltage;
             this.BatteryVoltageTimestamp = src.BatteryVoltageTimestamp;
@@ -144,9 +144,9 @@ namespace slg.Sensors
             //this.timestamp = src.timestamp;
         }
 
-        public bool IsPixyDataValid()
+        public bool IsTargetingCameraDataValid()
         {
-            return (double)(DateTime.Now.Ticks - PixyCameraTimestamp) / (double)TimeSpan.TicksPerSecond < 1.0d;
+            return (double)(DateTime.Now.Ticks - TargetingCameraTimestamp) / (double)TimeSpan.TicksPerSecond < 1.0d;
         }
 
         public override string ToString()
@@ -156,16 +156,17 @@ namespace slg.Sensors
  
             string batteryLevel = hasBatteryLevel ? string.Format("{0:0.00}V ({1:0.00}V per cell)", BatteryVoltage, BatteryVoltage / 3.0d) : "Unknown";
 
-            bool isPixyValid = IsPixyDataValid();
+            bool isCameraValid = IsTargetingCameraDataValid();
 
             //return string.Format("IR:   left: {0:0.00}   right: {1:0.00}   front: {2:0.00}   rear: {3:0.00}     SONAR:   left: {4:0.00}   right: {5:0.00}     ENCODERS:   left: {6}   right: {7}   \r\nBATTERY: {8}   COMPASS: {9:0}   Pixy: {10:0} {11:0}",
             //                        IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters, RangerFrontLeftMeters, RangerFrontRightMeters, WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
-            //                        (isPixyValid ? PixyCameraBearingDegrees : null), (isPixyValid ? PixyCameraInclinationDegrees : null));
+            //                        (isPixyValid ? TargetingCameraBearingDegrees : null), (isPixyValid ? TargetingCameraInclinationDegrees : null));
 
-            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    \r\nBATTERY: {6}   COMPASS: {7:0}",
+            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    \r\nBATTERY: {6}   COMPASS: {7:0}    Camera: {8:0} {9:0}",
                                     RangerFrontLeftMeters, RangerFrontRightMeters, RangerRearLeftMeters, RangerRearRightMeters, 
-                                    WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees
-                                    );
+                                    WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
+                                    (isCameraValid ? TargetingCameraBearingDegrees : null), (isCameraValid ? TargetingCameraInclinationDegrees : null)
+                                );
         }
     }
 }

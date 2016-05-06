@@ -15,7 +15,9 @@
  * although doing so, donating and contributing is always appreciated
  */
 
+using slg.RobotAbstraction.Sensors;
+
 namespace slg.RobotAbstraction.Events
 {
-    public delegate void HardwareComponentEventHandler(IHardwareComponent sender);
+    public delegate void TargetingCameraEventHandler(ITargetingCamera sender, TargetingCameraEventArgs args);
 }

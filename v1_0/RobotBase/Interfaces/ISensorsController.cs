@@ -15,6 +15,8 @@
  * although doing so, donating and contributing is always appreciated
  */
 
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace slg.RobotBase.Interfaces
 {
@@ -22,7 +24,7 @@ namespace slg.RobotBase.Interfaces
     {
         ISensorsData currentSensorsData { get; set; }
 
-        void InitSensors();
+        Task InitSensors(CancellationTokenSource cts);
 
         void Process();
 

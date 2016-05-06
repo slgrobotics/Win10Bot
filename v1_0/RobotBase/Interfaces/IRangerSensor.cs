@@ -17,7 +17,7 @@
 
 using System;
 
-using slg.RobotBase.Events;
+using slg.RobotAbstraction.Events;
 
 namespace slg.RobotBase.Interfaces
 {

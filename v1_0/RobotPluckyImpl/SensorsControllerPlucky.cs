@@ -19,17 +19,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 
 using slg.RobotBase;
 using slg.RobotBase.Interfaces;
-using slg.RobotBase.Events;
 using slg.RobotAbstraction;
 using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Events;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotAbstraction.Drive;
 using slg.Sensors;
+using slg.RobotMath;
 
 namespace slg.RobotPluckyImpl
 {
@@ -74,6 +76,8 @@ namespace slg.RobotPluckyImpl
 
         //private IAnalogSensor Ahrs;
 
+        private RPiCamera RPiCameraSensor;
+
         /// <summary>
         /// all Ranger Sensors are in this list for easy access to Pose and min/max ranges from SensorsData:
         /// </summary>
@@ -83,13 +87,15 @@ namespace slg.RobotPluckyImpl
         {
             hardwareBrick = brick;
             mainLoopCycleMs = _mainLoopCycleMs;
+
+            RPiCameraSensor = new RPiCamera("RPiCamera", 9097);
         }
 
         /// <summary>
         /// we can create sensors here, but cannot send commands before bridge_CommunicationStarted is called in PluckyTheRobot
         /// for example, encoder.Clear() will hang.
         /// </summary>
-        public void InitSensors()
+        public async Task InitSensors(CancellationTokenSource cts)
         {
             // see C:\Projects\Serializer_3_0\ExampleApps\AnalogSensorExample\AnalogSensorExample\Form1.cs
 
@@ -115,6 +121,9 @@ namespace slg.RobotPluckyImpl
             //Ahrs = hardwareBrick.produceAnalogSensor(AnalogPinId.A4, CompassSamplingIntervalMs, CompassSensitivityThreshold);
             //Ahrs.AnalogValueChanged += new HardwareComponentEventHandler(Ahrs_ValueChanged);
 
+            await RPiCameraSensor.Open(cts);
+            RPiCameraSensor.TargetingCameraTargetsChanged += RPiCameraSensor_TargetsChanged;
+
             batteryVoltage = CreateBatteryVoltageMeter(hardwareBrick, batterySamplingIntervalMs, batterySensitivityThresholdVolts);
 
             batteryVoltage.Enabled = true;  // slow update rate, leave it turned on
@@ -125,6 +134,7 @@ namespace slg.RobotPluckyImpl
             //CompassEnabled = true;    // compass no good inside concrete buildings, use gyro instead
             //CompassEnabled = false;
             //Ahrs.Enabled = true;
+            RPiCameraSensor.Enabled = true;
 
             currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
         }
@@ -132,6 +142,52 @@ namespace slg.RobotPluckyImpl
         public void Close()
         {
             Debug.WriteLine("SensorsControllerPlucky: Close()");
+
+            RPiCameraSensor.TargetingCameraTargetsChanged -= RPiCameraSensor_TargetsChanged;
+            RPiCameraSensor.Close();
+        }
+
+        void RPiCameraSensor_TargetsChanged(object sender, TargetingCameraEventArgs args)
+        {
+            //Debug.WriteLine("RPi Camera Event: " + args);
+
+            // On Raspberry Pi:
+            //      pixy.blocks[i].signature    The signature number of the detected object (1-7)
+            //      pixy.blocks[i].x       The x location of the center of the detected object (0 to 319)
+            //      pixy.blocks[i].y       The y location of the center of the detected object (0 to 199)
+            //      pixy.blocks[i].width   The width of the detected object (1 to 320)
+            //      pixy.blocks[i].height  The height of the detected object (1 to 200)
+
+            // Field of view:
+            //     goal 45 degrees  left  x=10
+            //                    middle  x=160
+            //     goal 45 degrees right  x=310
+            //
+            //     goal 30 degrees  up    y=10
+            //                    middle  y=90
+            //     goal 30 degrees down   y=190
+            //
+
+            if (args.width * args.height > 500) // only large objects count
+            {
+                int bearing = GeneralMath.map(args.x, 0, 320, -45, 45);
+                int inclination = GeneralMath.map(args.y, 0, 200, 30, -30);
+
+                //Debug.WriteLine("RPi: bearing=" + bearing + "  inclination: " + inclination);
+
+                lock (currentSensorsDataLock)
+                {
+                    SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+
+                    sensorsData.TargetingCameraBearingDegrees = bearing;
+                    sensorsData.TargetingCameraInclinationDegrees = inclination;
+                    sensorsData.TargetingCameraTimestamp = args.timestamp;
+
+                    //Debug.WriteLine(sensorsData.ToString());
+
+                    this.currentSensorsData = sensorsData;
+                }
+            }
         }
 
         //void Ahrs_ValueChanged(IHardwareComponent sender)
@@ -236,7 +292,10 @@ namespace slg.RobotPluckyImpl
 
         private IAnalogSensor CreateBatteryVoltageMeter(IAbstractRobotHardware brick, int frequency, double thresholdVolts)
         {
-            // analog pin 5 in Element board is internally tied to 1/3 of the supply voltage level. The 5.0d is 5V, microcontroller's ADC reference and 1024 is range.
+            // analog pin 5 in Element board is internally tied to 1/3 of the supply voltage level.
+            // The 5.0d is 5V, microcontroller's ADC reference and 1024 is range.
+            // on Plucky the battery voltage goes through 1/3 divider and comes to Arduino Pin 3, which is reported as Pin 5 to here.
+            // see PluckyWheels.ino sketch
             int threshold = (int)Math.Round((thresholdVolts * 1024.0d) / (3.0d * 5.0d));
 
             Debug.WriteLine("CreateBatteryVoltageMeter()   threshold=" + threshold);
@@ -259,7 +318,10 @@ namespace slg.RobotPluckyImpl
 
                 Debug.Assert(bv != null, "SensorsControllerPlucky: batteryVoltage_ValueChanged(): AnalogSensor must be non-null");
 
-                // analog pin 5 in Element board is internally tied to 1/3 of the supply voltage level. The 5.0d is 5V, microcontroller's ADC reference and 1024 is range.
+                // analog pin 5 in Element board is internally tied to 1/3 of the supply voltage level.
+                // The 5.0d is 5V, microcontroller's ADC reference and 1024 is range.
+                // on Plucky the battery voltage goes through 1/3 divider and comes to Arduino Pin 3, which is reported as Pin 5 to here.
+                // see PluckyWheels.ino sketch
 
                 double voltage = 3.0d * (bv.AnalogValue * 5.0d) / 1024.0d;
 

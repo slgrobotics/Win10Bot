@@ -59,11 +59,11 @@ namespace slg.RobotBase.Interfaces
         // Compass reading - for example, CMPS03 Compass connected via I2C
         double CompassHeadingDegrees { get; set; }
 
-        // Pixy camera bearing to detected object:
-        double? PixyCameraBearingDegrees { get; set; }
-        double? PixyCameraInclinationDegrees { get; set; }
-        long PixyCameraTimestamp { get; set; }
-        bool IsPixyDataValid();
+        // Targeting camera (i.e. Pixy Camera) bearing to a detected object:
+        double? TargetingCameraBearingDegrees { get; set; }
+        double? TargetingCameraInclinationDegrees { get; set; }
+        long TargetingCameraTimestamp { get; set; }
+        bool IsTargetingCameraDataValid();
 
         // battery timestamp is set by private setter.
         double BatteryVoltage { get; }

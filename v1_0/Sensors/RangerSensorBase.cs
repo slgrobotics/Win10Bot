@@ -22,7 +22,7 @@ using System.Text;
 
 using slg.RobotBase;
 using slg.RobotBase.Interfaces;
-using slg.RobotBase.Events;
+using slg.RobotAbstraction.Events;
 
 namespace slg.Sensors
 {

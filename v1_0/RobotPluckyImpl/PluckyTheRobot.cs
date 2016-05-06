@@ -114,7 +114,7 @@ namespace slg.RobotPluckyImpl
             joystick.joystickEvent += Joystick_joystickEvent;
 
             sensorsController = new SensorsControllerPlucky(hardwareBrick, loopTimeMs);
-            sensorsController.InitSensors();
+            sensorsController.InitSensors(cts);
 
             InitDrive();
 

@@ -46,14 +46,14 @@ namespace slg.Behaviors
         {
             get
             {
-                if (behaviorData.sensorsData.IsPixyDataValid())
+                if (behaviorData.sensorsData.IsTargetingCameraDataValid())
                 {
                     // Note: we need to lessen (constrain) the effect object displacement from center has on desired turn.
                     //       without it oscillations occur.
-                    double? bearingPixy = 
-                        //GeneralMath.constrain(behaviorData.sensorsData.PixyCameraBearingDegrees / 5.0d, -10.0d, 10.0d)
-                        //behaviorData.sensorsData.PixyCameraBearingDegrees / 5.0d;
-                        behaviorData.sensorsData.PixyCameraBearingDegrees;
+                    double? bearingPixy =
+                        //GeneralMath.constrain(behaviorData.sensorsData.TargetingCameraBearingDegrees / 5.0d, -10.0d, 10.0d)
+                        //behaviorData.sensorsData.TargetingCameraBearingDegrees / 5.0d;
+                        behaviorData.sensorsData.TargetingCameraBearingDegrees;
 
                     //Debug.WriteLine("bearingPixy=" + bearingPixy);
 
@@ -75,7 +75,7 @@ namespace slg.Behaviors
 
             BehaviorDeactivateCondition = bd =>
             {
-                return !behaviorData.sensorsData.IsPixyDataValid();  // no colored objects in Pixy Camera view
+                return !behaviorData.sensorsData.IsTargetingCameraDataValid();  // no colored objects in Pixy Camera view
             };
         }
 

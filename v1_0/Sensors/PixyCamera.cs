@@ -1,59 +1,151 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿/*
+ * Copyright (c) 2016..., Sergei Grichine   http://trackroamer.com
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *    
+ * this is a no-warranty no-liability permissive license - you do not have to publish your changes,
+ * although doing so, donating and contributing is always appreciated
+ */
+
+using System;
 using System.Text;
-//using System.IO.Ports;
 using System.Diagnostics;
-using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+
+using slg.RobotAbstraction;
+using slg.RobotAbstraction.Events;
+using slg.RobotAbstraction.Sensors;
+using slg.RobotExceptions;
+using slg.LibCommunication;
 
 namespace slg.Sensors
 {
-    public class PixyCameraEventArgs : EventArgs
-    {
-        public int x;
-        public int y;
-        public int width;
-        public int height;
-        public int signature;
-        public long timestamp;
-
-        public override string ToString()
-        {
-            return String.Format("{0} {1} {2} {3} {4}", x, y, width, height, signature);
-        }
-    }
-
     /// <summary>
     /// Pixy camera connected via Arduino.
     /// This class opens serial to Arduino and receives lines in the form "*226 143 14 5 1" - x, y, width, height, signature
     /// See C:\Projects\Arduino\Sketchbook\PixyToSerial\PixyToSerial.ino
     /// </summary>
-    public class PixyCamera
+    public class PixyCamera : ITargetingCamera
     {
+        public string Name { get; set; }
+
+        public bool Enabled { get; set; }
+
         //private SerialPort _serialPort = null;
         private string ComPortName; // = "COM8";
         private int ComBaudRate; // = 115200;
 
-        #region Public Events
+        public bool running = false;
+        private ICommunicationChannel serialChannel;
+        private Stopwatch stopWatch = new Stopwatch();
+        private CancellationTokenSource cancellationTokenSource;
+        //public BufferBlock<CommandAndResponse> commandsBufferBlock { get; private set; }
+        //private ActionBlock<CommandAndResponse> actionBlock;
 
-        public delegate void PixyCameraEventHandler(PixyCamera sender, PixyCameraEventArgs args);
+        #region Public Events
 
         /// <summary>
         /// Occurs when PixyCamera <c>Detected Blocks</c> has changed.
         /// </summary>
-        public event PixyCameraEventHandler PixyCameraBlocksChanged;
+        public event EventHandler<TargetingCameraEventArgs> TargetingCameraTargetsChanged;
 
         #endregion
 
-        public PixyCamera(string comPortName, int comBaudRate)
+        public PixyCamera(string cameraName, string comPortName, int comBaudRate)
         {
+            Name = cameraName;
             ComPortName = comPortName;
             ComBaudRate = comBaudRate;
         }
 
-        public void Open()
+        public async Task Open(CancellationTokenSource cts)
         {
+            cancellationTokenSource = cts;
+
+            serialChannel = new CommunicationChannelSerial(cts)
+            {
+                Name = ComPortName,
+                BaudRate = (uint)ComBaudRate,
+                NewLineIn = "\r\n",
+                NewLineOut = "\r\n"
+            };
+
+            try
+            {
+                Debug.WriteLine("IP: PixyCamera: serialPort " + ComPortName + " opening...");
+                await serialChannel.Open();
+                Debug.WriteLine("OK: PixyCamera: serialPort " + ComPortName + " opened");
+
+                //commandsBufferBlock = new BufferBlock<CommandAndResponse>(
+                //                        new DataflowBlockOptions() { CancellationToken = cts.Token });
+
+                //actionBlock = new ActionBlock<CommandAndResponse>(
+                //                        async prompt =>
+                //                        {
+                //                            await serialChannel.WriteLine(prompt.command);
+                //                            string response = await serialChannel.ReadLine();
+                //                            prompt.completionSource.SetResult(response);
+                //                        },
+                //                        new ExecutionDataflowBlockOptions() { CancellationToken = cts.Token, BoundedCapacity = 10 });
+
+                //commandsBufferBlock.LinkTo(actionBlock, new DataflowLinkOptions { PropagateCompletion = true });
+
+                Debug.WriteLine("IP: PixyCamera: trying to synch up with the board - resetting...");
+
+                string resp = null;
+                int count = 10;
+                bool boardFound = false;
+
+                while (count-- > 0)
+                {
+                    // try to sync up with the board
+                    //resp = await SendAndReceive("reset");
+
+                    Debug.WriteLine("OK: PixyCamera: 'reset' -> '" + resp + "'");
+
+                    if (string.Equals(resp, "Arduino firmware Plucky Wheels"))
+                    {
+                        boardFound = true;
+                        break;
+                    }
+                }
+
+                if (boardFound)
+                {
+                    Debug.WriteLine("OK: PixyCamera: found Plucky Wheels Arduino brick");
+                }
+                else
+                {
+                    throw new CommunicationException("CommunicationTask: Could not find Plucky Wheels Arduino brick, invalid response to 'reset' at serial port " + ComPortName);
+                }
+
+                stopWatch.Start();
+                running = true;
+            }
+            catch (AggregateException aexc)
+            {
+                throw new CommunicationException("CommunicationTask: Could not start communication");
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine("Error: PixyCamera: exception while opening serial port " + ComPortName + " : " + exc);
+                //await Stop();
+                //throw new CommunicationException("CommunicationTask: Could not start communication");
+                throw;
+            }
+
             /*
+             * TODO: port to Universal Windows
             try
             {
                 _serialPort = new SerialPort(ComPortName, ComBaudRate, Parity.None, 8, StopBits.One);
@@ -83,6 +175,7 @@ namespace slg.Sensors
         public void Close()
         {
             /*
+             * TODO: port to Universal Windows
             if (_serialPort != null && _serialPort.IsOpen)
             {
                 _serialPort.Close();
@@ -101,6 +194,8 @@ namespace slg.Sensors
         char[] splitChar = new char[] { ' ' };
 
         /*
+         * TODO: port to Universal Windows
+         * 
         /// <summary>
         /// Serial Port data event handler
         /// </summary>
@@ -152,15 +247,16 @@ namespace slg.Sensors
                                         //     goal 30 degrees down   y=190
                                         //
 
-                                        if (PixyCameraBlocksChanged != null)
+                                        if (TargetingCameraTargetsChanged != null && Enabled)
                                         {
                                             try
                                             {
                                                 string[] split = line.Split(splitChar);
 
                                                 // Send data to whoever interested:
-                                                PixyCameraBlocksChanged(this, new PixyCameraEventArgs()
+                                                TargetingCameraTargetsChanged(this, new TargetingCameraEventArgs()
                                                 {
+                                                    cameraName = Name,
                                                     x = int.Parse(split[0]),
                                                     y = int.Parse(split[1]),
                                                     width = int.Parse(split[2]),

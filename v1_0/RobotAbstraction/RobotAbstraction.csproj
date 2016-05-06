@@ -117,6 +117,9 @@
     <Compile Include="Drive\IWheelEncoder.cs" />
     <Compile Include="Events\CommunicationChannelEventHandler.cs" />
     <Compile Include="Events\HardwareComponentEventHandler.cs" />
+    <Compile Include="Events\RangerSensorEventArgs.cs" />
+    <Compile Include="Events\TargetingCameraEventArgs.cs" />
+    <Compile Include="Events\TargetingCameraEventHandler.cs" />
     <Compile Include="IAbstractRobotHardware.cs" />
     <Compile Include="ICommunicationChannel.cs" />
     <Compile Include="Ids\AnalogPinId.cs" />
@@ -130,6 +133,7 @@
     <Compile Include="Sensors\ISharpGP2D12.cs" />
     <Compile Include="Sensors\IParkingSonar.cs" />
     <Compile Include="Sensors\ISonarSRF04.cs" />
+    <Compile Include="Sensors\ITargetingCamera.cs" />
     <Content Include="Properties\RobotAbstraction.rd.xml" />
   </ItemGroup>
   <ItemGroup>

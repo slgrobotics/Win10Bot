@@ -113,7 +113,7 @@ namespace slg.RobotShortyImpl
             joystick.joystickEvent += Joystick_joystickEvent;
 
             sensorsController = new SensorsControllerShorty(hardwareBrick, loopTimeMs);
-            sensorsController.InitSensors();
+            sensorsController.InitSensors(cts);
 
             InitDrive();
 

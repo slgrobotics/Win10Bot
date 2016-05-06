@@ -17,18 +17,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
+using slg.RobotAbstraction;
+using slg.RobotAbstraction.Drive;
+using slg.RobotAbstraction.Events;
+using slg.RobotAbstraction.Ids;
+using slg.RobotAbstraction.Sensors;
 using slg.RobotBase;
 using slg.RobotBase.Interfaces;
-using slg.RobotBase.Events;
-using slg.RobotAbstraction;
-using slg.RobotAbstraction.Ids;
-using slg.RobotAbstraction.Events;
-using slg.RobotAbstraction.Sensors;
-using slg.RobotAbstraction.Drive;
 using slg.RobotMath;
 using slg.Sensors;
 
@@ -81,7 +80,7 @@ namespace slg.RobotShortyImpl
         //private I2CDevice Ahrs;
         private IAnalogSensor Ahrs;
 
-        //private PixyCamera PixyCameraSensor;
+        private PixyCamera PixyCameraSensor;
 
         /// <summary>
         /// all Ranger Sensors are in this list for easy access to Pose and min/max ranges from SensorsData:
@@ -93,14 +92,14 @@ namespace slg.RobotShortyImpl
             hardwareBrick = brick;
             mainLoopCycleMs = _mainLoopCycleMs;
 
-            //PixyCameraSensor = new PixyCamera("COM8", 115200);
+            //PixyCameraSensor = new PixyCamera("PixyCamera", "COM8", 115200);
         }
 
         /// <summary>
         /// we can create sensors here, but cannot send commands before bridge_CommunicationStarted is called in PluckyTheRobot
         /// for example, encoder.Clear() will hang.
         /// </summary>
-        public void InitSensors()
+        public async Task InitSensors(CancellationTokenSource cts)
         {
             // see C:\Projects\Serializer_3_0\ExampleApps\AnalogSensorExample\AnalogSensorExample\Form1.cs
 
@@ -167,8 +166,8 @@ namespace slg.RobotShortyImpl
             //Ahrs.WriteCommand = "234";
             //Ahrs.ReadCommand = "6";
 
-            //PixyCameraSensor.Open();
-            //PixyCameraSensor.PixyCameraBlocksChanged += new PixyCamera.PixyCameraEventHandler(PixyCameraSensor_PixyCameraBlocksChanged);
+            await PixyCameraSensor.Open(cts);
+            PixyCameraSensor.TargetingCameraTargetsChanged += PixyCameraSensor_PixyCameraBlocksChanged;
 
             batteryVoltage = CreateBatteryVoltageMeter(hardwareBrick, batterySamplingIntervalMs, batterySensitivityThresholdVolts);
 
@@ -180,6 +179,7 @@ namespace slg.RobotShortyImpl
             //CompassEnabled = true;    // compass no good inside concrete buildings, use gyro instead
             CompassEnabled = false;
             Ahrs.Enabled = true;
+            PixyCameraSensor.Enabled = true;
 
             currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
         }
@@ -187,10 +187,11 @@ namespace slg.RobotShortyImpl
         public void Close()
         {
             Debug.WriteLine("SensorsControllerElement: Close()");
-            //PixyCameraSensor.Close();
+            PixyCameraSensor.TargetingCameraTargetsChanged -= PixyCameraSensor_PixyCameraBlocksChanged;
+            PixyCameraSensor.Close();
         }
 
-        void PixyCameraSensor_PixyCameraBlocksChanged(PixyCamera sender, PixyCameraEventArgs args)
+        void PixyCameraSensor_PixyCameraBlocksChanged(object sender, TargetingCameraEventArgs args)
         {
             //Debug.WriteLine("Pixy Camera Event: " + args);
 
@@ -222,9 +223,9 @@ namespace slg.RobotShortyImpl
                 {
                     SensorsData sensorsData = new SensorsData(this.currentSensorsData);
 
-                    sensorsData.PixyCameraBearingDegrees = bearing;
-                    sensorsData.PixyCameraInclinationDegrees = inclination;
-                    sensorsData.PixyCameraTimestamp = args.timestamp;
+                    sensorsData.TargetingCameraBearingDegrees = bearing;
+                    sensorsData.TargetingCameraInclinationDegrees = inclination;
+                    sensorsData.TargetingCameraTimestamp = args.timestamp;
 
                     //Debug.WriteLine(sensorsData.ToString());
 

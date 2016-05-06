@@ -17,7 +17,7 @@
 
 using System;
 
-namespace slg.RobotBase.Events
+namespace slg.RobotAbstraction.Events
 {
     public class RangerSensorEventArgs : EventArgs
     {
