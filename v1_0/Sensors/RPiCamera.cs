@@ -39,7 +39,6 @@ namespace slg.Sensors
 
         public bool Enabled { get; set; }
 
-        //private SerialPort _serialPort = null;
         private int HttpPort; // = "9097";
 
         #region Public Events
@@ -131,32 +130,35 @@ namespace slg.Sensors
             //     goal 30 degrees down   y=190
             //
 
-            DateTime now = DateTime.Now;
-
-            if (TargetingCameraTargetsChanged != null)
+            if (TargetingCameraTargetsChanged != null && !String.IsNullOrWhiteSpace(line))
             {
                 try
                 {
                     string[] split = line.Split(splitChar);
 
-                    // Send data to whoever interested:
-                    TargetingCameraTargetsChanged(this, new TargetingCameraEventArgs()
+                    if (split.Length >= 5)
                     {
-                        cameraName = Name,
-                        x = int.Parse(split[0]),
-                        y = int.Parse(split[1]),
-                        width = int.Parse(split[2]),
-                        height = int.Parse(split[3]),
-                        signature = int.Parse(split[4]),
-                        timestamp = now.Ticks
-                    });
+                        DateTime now = DateTime.Now;
+
+                        // Send data to whoever interested:
+                        TargetingCameraTargetsChanged(this, new TargetingCameraEventArgs()
+                        {
+                            cameraName = Name,
+                            x = int.Parse(split[0]),
+                            y = int.Parse(split[1]),
+                            width = int.Parse(split[2]),
+                            height = int.Parse(split[3]),
+                            signature = int.Parse(split[4]),
+                            timestamp = now.Ticks
+                        });
+
+                        double msSinceLastReceived = (now - lastLineReceived).TotalMilliseconds;
+                        lastLineReceived = now;
+                        //Debug.WriteLine("OK: '" + line + "'      ms: " + Math.Round(msSinceLastReceived));
+                    }
                 }
                 catch { }
             }
-
-            double msSinceLastReceived = (now - lastLineReceived).TotalMilliseconds;
-            lastLineReceived = now;
-            //Debug.WriteLine("OK: '" + line + "'      ms: " + Math.Round(msSinceLastReceived));
         }
     }
 }

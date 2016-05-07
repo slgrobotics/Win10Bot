@@ -6,6 +6,10 @@ import time
 import cv2
 import numpy as np
 import requests
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(20, GPIO.OUT)	# yellow LED
  
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
@@ -63,10 +67,13 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         cx,cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
         #if best_cnt>1:
         cv2.circle(blur,(cx,cy),10,(0,0,255),-1)
+        
         # show the frame
-        cv2.imshow("Frame", blur)
+        #cv2.imshow("Frame", blur)
         #cv2.imshow('thresh',thresh2)
+        
         #print(best_cnt, max_area)
+        GPIO.output(20, False)
         if (cx != cxPrev or cy != cyPrev) and cx != 0 and cy != 0 :
                 cxPrev = cx
                 cyPrev = cy
@@ -76,12 +83,17 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
                 connectTimeout = 0.1
                 readTimeout = 0.1
                 #serverUrl='http://172.16.1.201:9097'
-                serverUrl='http://172.16.1.175:9097'
+                #serverUrl='http://172.16.1.175:9097'
+                serverUrl='http://minwinpc:9097'
                 
                 try:
                         r = requests.post(serverUrl,
                                           data=payload,
                                           timeout=(connectTimeout,readTimeout))
+                        GPIO.output(20, True)
+
+                except requests.exceptions.ConnectionError as exc:
+                        print("connection error")
                 except requests.exceptions.ConnectTimeout as exc:
                         print("connection timeout")
                 except requests.exceptions.ReadTimeout as exc:
