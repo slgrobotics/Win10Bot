@@ -98,7 +98,7 @@ namespace slg.Sensors
             {
                 if (Enabled)
                 {
-                    await CameraDataReceived(postData);
+                    CameraDataReceived(postData);
                 }
                 pageContent = "ACK";
             }
@@ -107,14 +107,14 @@ namespace slg.Sensors
         }
 
         DateTime lastLineReceived;
-        char[] splitChar = new char[] { ' ' };
+        char[] splitChar = new char[] { ' ' };  // doubles as lock
 
         /// <summary>
         /// Serial Port data event handler
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private async Task CameraDataReceived(string line)
+        private void CameraDataReceived(string line)
         {
             //Debug.WriteLine(line);
 
@@ -138,26 +138,32 @@ namespace slg.Sensors
 
                     if (split.Length >= 5)
                     {
-                        DateTime now = DateTime.Now;
-
-                        // Send data to whoever interested:
-                        TargetingCameraTargetsChanged(this, new TargetingCameraEventArgs()
+                        // we want only one thread here:
+                        lock (splitChar)
                         {
-                            cameraName = Name,
-                            x = int.Parse(split[0]),
-                            y = int.Parse(split[1]),
-                            width = int.Parse(split[2]),
-                            height = int.Parse(split[3]),
-                            signature = int.Parse(split[4]),
-                            timestamp = now.Ticks
-                        });
+                            DateTime now = DateTime.Now;
+                            // Send data to whoever interested:
+                            TargetingCameraTargetsChanged(this, new TargetingCameraEventArgs()
+                            {
+                                cameraName = Name,
+                                x = int.Parse(split[0]),
+                                y = int.Parse(split[1]),
+                                width = int.Parse(split[2]),
+                                height = int.Parse(split[3]),
+                                signature = int.Parse(split[4]),
+                                timestamp = now.Ticks
+                            });
 
-                        double msSinceLastReceived = (now - lastLineReceived).TotalMilliseconds;
-                        lastLineReceived = now;
-                        //Debug.WriteLine("OK: '" + line + "'      ms: " + Math.Round(msSinceLastReceived));
+                            double msSinceLastReceived = (now - lastLineReceived).TotalMilliseconds;
+                            lastLineReceived = now;
+                            //Debug.WriteLine("OK: '" + line + "'      ms: " + Math.Round(msSinceLastReceived));
+                        }
                     }
                 }
-                catch { }
+                catch (Exception exc)
+                {
+                    Debug.WriteLine("Error: RPiCamera:CameraDataReceived: " + exc);
+                }
             }
         }
     }

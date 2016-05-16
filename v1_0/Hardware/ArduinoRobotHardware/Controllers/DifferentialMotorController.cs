@@ -40,11 +40,20 @@ namespace slg.ArduinoRobotHardware.Controllers
             {
                 if(Enabled)
                 { 
-                    Debug.WriteLine("DifferentialMotorController:set_LeftMotorSpeed : " + value);
+                    //Debug.WriteLine("DifferentialMotorController:set_LeftMotorSpeed : " + value);
                     Task.Factory.StartNew(async () => {
-                                                string cmd = "pwm 2:" + value;
-                                                string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
-                                            });
+                        try
+                        {
+                            int checksum = -(2 + value);
+                            string cmd = "pwm 2:" + value + " c" + checksum;
+                            string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
+                            if (String.IsNullOrWhiteSpace(resp) || !String.Equals("ACK", resp.Trim()))
+                            {
+                                Debug.WriteLine("Error: DifferentialMotorController:set_LeftMotorSpeed : invalid response: " + resp);
+                            }
+                        }
+                        catch { }
+                   });
                 }
             }
         }
@@ -60,11 +69,20 @@ namespace slg.ArduinoRobotHardware.Controllers
             {
                 if (Enabled)
                 {
-                    Debug.WriteLine("DifferentialMotorController:set_RightMotorSpeed : " + value);
+                    //Debug.WriteLine("DifferentialMotorController:set_RightMotorSpeed : " + value);
                     Task.Factory.StartNew(async () => {
-                                                string cmd = "pwm 1:" + value;
-                                                string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
-                                            });
+                        try
+                        {
+                            int checksum = -(1 + value);
+                            string cmd = "pwm 1:" + value + " c" + checksum;
+                            string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
+                            if (String.IsNullOrWhiteSpace(resp) || !String.Equals("ACK", resp.Trim()))
+                            {
+                                Debug.WriteLine("Error: DifferentialMotorController:set_RightMotorSpeed : invalid response: " + resp);
+                            }
+                        }
+                        catch { }
+                    });
                 }
             }
         }
@@ -77,12 +95,12 @@ namespace slg.ArduinoRobotHardware.Controllers
 
         public void Drive()
         {
-            Debug.WriteLine("DifferentialMotorController:Drive()");
+            //Debug.WriteLine("DifferentialMotorController:Drive()");
         }
 
         public void Update()
         {
-            Debug.WriteLine("DifferentialMotorController:Update()");
+            //Debug.WriteLine("DifferentialMotorController:Update()");
         }
 
         protected override async Task roundtrip()

@@ -49,8 +49,12 @@ namespace slg.ArduinoRobotHardware.Sensors
         {
             if (Enabled)
             {
-                string cmd = "odomreset";
-                string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
+                try
+                {
+                    string cmd = "odomreset";
+                    string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
+                }
+                catch { }
             }
         }
 

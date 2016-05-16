@@ -114,8 +114,8 @@ namespace RobotPlucky
                             {
                                 // inside the same process isolation does not block access. Other processes on the same computer are blocked.
                                 // use another computer to hit this URL in the browser: 
-                                string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/robotUI.html"));
-                                //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/robotUI.html"));
+                                string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
+                                //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/DateTime"));
                                 Debug.WriteLine("HttpClient: got response: " + response); 
                             }
                             catch (Exception exc)

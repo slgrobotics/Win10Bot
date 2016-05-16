@@ -14,7 +14,7 @@
  * this is a no-warranty no-liability permissive license - you do not have to publish your changes,
  * although doing so, donating and contributing is always appreciated
  */
- 
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +36,7 @@ using Windows.Networking.Sockets;
 
 using slg.RobotBase.Interfaces;
 using slg.RobotBase.Data;
+using slg.RobotBase;
 
 namespace slg.DisplayWebServer
 {
@@ -89,7 +90,8 @@ namespace slg.DisplayWebServer
 
                     case "DateTime":  // AJAX call
                         localPath = "##" + DateTime.Now.ToString() 
-                                         + (deviceOpener.IsDeviceOpen ? (" since start: " + getSinceStartTime()) : "");
+                                         + (deviceOpener.IsDeviceOpen ? (" since start: " + getSinceStartTime()) : "")
+                                         + " Count: " + HttpServerBase.ConnectionsCount;
                         break;
 
                     case "JoystickData":  // AJAX call

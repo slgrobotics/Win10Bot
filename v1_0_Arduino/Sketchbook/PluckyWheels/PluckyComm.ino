@@ -131,33 +131,51 @@ void control()
       }
       else if(!strcmp(tokens[0], "pwm"))
       {
-        // 'pwm 1:35 2:-65'
+        // we don't want any errors on the wheels - so we protect this command with a checksum.
+        // 'pwm 1:35 2:-65 c1234'
         //Serial.println("OK: pwm");
+        int checksum = 0;
         for(int k=1; k < i ;k++)
         {
-          channels[k-1] = atoi(tokens[k]);
-          pwms[k-1] = atoi(tokens[k] + 2);
+          if(tokens[k][0] == 'c')
+          {
+            checksum += atoi(tokens[k] + 1);
+          }
+          else
+          {
+            channels[k-1] = atoi(tokens[k]);
+            checksum += channels[k-1];
+            pwms[k-1] = atoi(tokens[k] + 2);
+            checksum += pwms[k-1];
 
 //          Serial.print("   ch=");
 //          Serial.print(channels[k-1]);
 //          Serial.print("   pwm=");
 //          Serial.println(pwms[k-1]);
-        }
-        Serial.print("\r\nACK\r\n>");
-
-        for(int k=0; k < i-1 ;k++)
-        {
-          // "pwm" comes in the range -100...100 - it has a meaning of "percent of max speed"
-          switch(channels[k])
-          {
-            case 1:
-              desiredSpeedR = pwms[k];
-              break;
-            case 2:
-              desiredSpeedL = pwms[k];
-              break;
           }
-        }        
+        }
+
+        if(checksum == 0)
+        {
+          Serial.print("\r\nACK\r\n>");
+          for(int k=0; k < i-1 ;k++)
+          {
+            // "pwm" comes in the range -100...100 - it has a meaning of "percent of max speed"
+            switch(channels[k])
+            {
+              case 1:
+                desiredSpeedR = pwms[k];
+                break;
+              case 2:
+                desiredSpeedL = pwms[k];
+                break;
+            }
+          }
+        }
+        else
+        {
+           Serial.print("\r\nNAK\r\n>");
+        }
       }
       else if(!strcmp(tokens[0], "vel"))
       {
