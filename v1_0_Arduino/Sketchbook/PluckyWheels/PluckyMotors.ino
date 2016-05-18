@@ -28,7 +28,7 @@ int LPWM_B = 11;			// 17
 //   Set motor power for both motors. Positive is forward.
 //
 // ******************************************************************************************
-void set_motor()
+void set_motors()
 {
   if(pwm_R > 255)      // Maximum / Minimum Limitations
     pwm_R = 255;

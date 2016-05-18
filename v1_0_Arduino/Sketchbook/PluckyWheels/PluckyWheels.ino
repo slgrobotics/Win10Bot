@@ -10,7 +10,7 @@ const int batteryInPin = A3;  // Analog input pin that the battery 1/3 divider i
 
 #define SLAVE_I2C_ADDRESS 9   // parking sonar sensor, driven by Arduino Pro Mini
 
-boolean doTRACE = false;
+const boolean doTRACE = false;
 
 const int mydt = 5;           // 5 milliseconds make for 200 Hz operating cycle
 const int pidLoopFactor = 4;  // factor of 4 make for 20ms PID cycle
@@ -24,8 +24,23 @@ double dpwm_R, dpwm_L;  // correction output, calculated by PID, -255..255 norma
 double speedMeasured_R, speedMeasured_L;  // percent of max speed for this drive configuration.
 
 // desired speed is set by Comm:
-double desiredSpeedR = 0;
-double desiredSpeedL = 0;
+double desiredSpeedR = 0.0;
+double desiredSpeedL = 0.0;
+
+// PID Setpoints (desired speed after ema):
+double setpointSpeedR = 0.0;
+double setpointSpeedL = 0.0;
+
+const int RightMotorChannel = 0;  // index to ema*[] arrays
+const int LeftMotorChannel = 1;
+
+// EMA period to smooth wheels movement. 100 is smooth but fast, 300 is slow.
+const int EmaPeriod = 100;
+
+// variables to compute exponential moving average:
+int emaPeriod[2];
+double valuePrev[2];
+double multiplier[2];
 
 // Plucky robot parameters:
 double wheelBaseMeters = 0.600;
@@ -39,8 +54,9 @@ double Theta;  // radians, positive clockwise
 
 DifferentialDriveOdometry *odometry;
 
-PID myPID_R(&speedMeasured_L, &dpwm_L, &desiredSpeedL, 1.0, 0.2, 0.1, DIRECT);    // in, out, setpoint, double Kp, Ki, Kd, DIRECT or REVERSE
-PID myPID_L(&speedMeasured_R, &dpwm_R, &desiredSpeedR, 1.0, 0.2, 0.1, DIRECT);
+// higher Ki causes residual rotation, higher Kd - jerking movement
+PID myPID_R(&speedMeasured_R, &dpwm_R, &setpointSpeedR, 1.0, 0, 0.05, DIRECT);    // in, out, setpoint, double Kp, Ki, Kd, DIRECT or REVERSE
+PID myPID_L(&speedMeasured_L, &dpwm_L, &setpointSpeedL, 1.0, 0, 0.05, DIRECT);
 
 // received from parking sonar sensor Slave, readings in centimeters:
 volatile int rangeFRcm;
@@ -87,11 +103,14 @@ void setup()
 
   odometry = new DifferentialDriveOdometry();
   odometry->Init(wheelBaseMeters, wheelRadiusMeters, encoderTicksPerRevolution);
+
+  setEmaPeriod(RightMotorChannel, EmaPeriod);
+  setEmaPeriod(LeftMotorChannel, EmaPeriod);
   
   pwm_R = 0;
   pwm_L = 0;
   motors.init();
-  set_motor();
+  set_motors();
 
   blinkLED(10, 50);
 
@@ -104,7 +123,7 @@ void setup()
 
 void loop() //Main Loop
 {
-  delay(1);
+  delay(1); // 1 ms
   
   if((millis() - timer) >= mydt)  // Main loop runs at 200Hz (mydt=5), to allow frequent sampling of AHRS
   {
@@ -112,10 +131,18 @@ void loop() //Main Loop
     timer_old = timer;
     timer = millis();
 
-    printAll();
+    if(doTRACE)
+    {
+      printAll();
+    }
+    
+    readCommCommand();  // reads desiredSpeed
+    
+    // smooth movement by using ema: take desiredSpeed and produce setpointSpeed
+    ema(RightMotorChannel);
+    ema(LeftMotorChannel);
 
-    control();
-
+    // compute control inputs - increments to current PWM
     myPID_R.Compute();
     myPID_L.Compute();
 
@@ -123,7 +150,7 @@ void loop() //Main Loop
 
     if(isPidLoop)  // we do speed PID and odometry calculation on a slower scale, about 20Hz
     {
-      // based on distance increments, calculate speed:
+      // based on PWM increments, calculate speed:
       speed_calculate();
       
       // Calculate the pwm, given the desired speed (pick up values computed by PIDs):
@@ -134,7 +161,7 @@ void loop() //Main Loop
       //pwm_L = 80;
       //pwm_L = 255;  // measure full speed
   
-      set_motor();
+      set_motors();
   
       // odometry calculation takes 28us
       //digitalWrite(10, HIGH);
@@ -160,6 +187,32 @@ void loop() //Main Loop
       //digitalWrite(10, LOW);
     }
   }
+}
+
+void ema(int ch)
+{
+  // smooth movement by using ema:
+  switch (ch)
+  {
+    case RightMotorChannel:
+      setpointSpeedR = (valuePrev[ch] < -1000000.0) ? desiredSpeedR : ((desiredSpeedR - valuePrev[ch]) * multiplier[ch] + valuePrev[ch]);  // ema
+      //setpointSpeedR = desiredSpeedR; // no ema
+      valuePrev[ch] = setpointSpeedR;
+      break;
+
+    case LeftMotorChannel:
+      setpointSpeedL = (valuePrev[ch] < -1000000.0) ? desiredSpeedL : ((desiredSpeedL - valuePrev[ch]) * multiplier[ch] + valuePrev[ch]);  // ema
+      //setpointSpeedL = desiredSpeedL; // no ema
+      valuePrev[ch] = setpointSpeedL;
+      break;
+  }
+}
+
+void setEmaPeriod(int ch, int period)
+{
+  valuePrev[ch] = -2000000.0;  // signal to use desiredSpeed directly for the first point
+  emaPeriod[ch] = period;
+  multiplier[ch] = 2.0 / (1.0 + (double)emaPeriod[ch]);
 }
 
 

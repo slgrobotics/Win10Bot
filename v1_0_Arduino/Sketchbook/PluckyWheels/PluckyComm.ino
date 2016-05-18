@@ -9,7 +9,7 @@
 
 int j = 0; // sensor "randomizer" for debugging
 
-void control()
+void readCommCommand()
 {
   while(Serial.available())
   {
