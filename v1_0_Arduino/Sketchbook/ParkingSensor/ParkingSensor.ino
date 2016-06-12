@@ -21,12 +21,236 @@
  * https://www.paypal.me/vitalbytes
  */
  
+//#define PARKINGSENSOR_MODEL_1
+#define PARKINGSENSOR_MODEL_2
+
+// all you need is to tap into the data wire that goes from sensor processor to display, and of course connect the ground.
+// Car parking sensor decoding port; use pin 3 because it is connected to external interrupt 1 (INT1)
+int mParkingSensorPin = 3;
+
+int ledPin = 13;   // LED connected to digital pin 13
+//int dbgPin = 8;  // digital pin 8 used for debugging
+
+int ledFRYPin = 12; // LED - Front Right Yellow
+int ledFRRPin = A0; // LED - Front Right Red
+int ledFLYPin = 11; // LED - Front Left Yellow
+int ledFLRPin = 10; // LED - Front Left Red
+
+int ledBRYPin = 2;  // LED - Back Right Yellow
+int ledBRRPin = 4;  // LED - Back Right Red
+int ledBLYPin = 5;  // LED - Back Left Yellow
+int ledBLRPin = 6;  // LED - Back Left Red
+
+boolean runTest = true;           // blink all LEDs at startup
+
+// readings in centimeters:
+volatile int rangeFRcm;
+volatile int rangeFLcm;
+volatile int rangeBRcm;
+volatile int rangeBLcm;
+
+
+#ifdef PARKINGSENSOR_MODEL_1
+
+unsigned long BETWEEN_PACKETS_MS = 30;   // time in milliseconds between the end of the packet and start of the next one (250ms), minus some.
+
+// we expect data pulse max around 950us and min around 300us - actually the pulses are 400 and 800 us. Values below are min and max us/16:
+unsigned long PULSE_MIN = 20;
+unsigned long PULSE_MAX = 60;
+byte BADPULSE_DISCRIMINATOR = 80;
+byte ONEZERO_DISCRIMINATOR = 35;
+
+#endif //PARKINGSENSOR_MODEL_1
+
+
+#ifdef PARKINGSENSOR_MODEL_2
+
+unsigned long BETWEEN_PACKETS_MS = 20;   // time in milliseconds between the end of the packet and start of the next one (30ms), minus 20-30%
+
+// we expect data pulse max around 250us and min around 80us - actually the pulses are 100 and 200 us. Values below are min and max us/16:
+unsigned long PULSE_MIN = 5;
+unsigned long PULSE_MAX = 15;
+byte BADPULSE_DISCRIMINATOR = 18;
+byte ONEZERO_DISCRIMINATOR = 9;
+
+#endif //PARKINGSENSOR_MODEL_2
+
+
+// these are volatile because they are changed in interrupt handler.
+// otherwise the compiler will assume they are unchanged and replace with constants, or put them in registers.
+// volatile variables are always fetched from RAM and stored directly in RAM, no optimization applied.
+// We only need to declare volatile those variables that are shared between interrupt routine and loop.
+volatile boolean psiChanged;
+
+// processed car parking sensors data:
+volatile byte psiData[8];	// raw bits from psiRawData converted to distance codes (decimeters in fact) as reported by each of 4 (or 8? - assuming a 8-channel device will some time be used) sensors.
+
+void setup()
+{
+  Serial.begin(115200);
+
+  pinMode(mParkingSensorPin, INPUT);  // Set signal pin to input
+
+  pinMode(ledPin, OUTPUT);            // Sets the digital pin as output
+  //pinMode(dbgPin, OUTPUT);          // Sets the digital pin as output
+
+  pinMode(ledFRYPin, OUTPUT);         // Set LED pins as output
+  pinMode(ledFRRPin, OUTPUT);
+  pinMode(ledFLYPin, OUTPUT);
+  pinMode(ledFLRPin, OUTPUT);
+  
+  pinMode(ledBRYPin, OUTPUT);
+  pinMode(ledBRRPin, OUTPUT);
+  pinMode(ledBLYPin, OUTPUT);
+  pinMode(ledBLRPin, OUTPUT);
+
+  // we will get an interrupt on both falling and rising edges:  
+  attachInterrupt(1, interrup_isr_onchange, CHANGE);
+}
+
+void loop() {
+  if(runTest)
+  {
+    test();
+    runTest = false;
+  }
+  
+  if(psiChanged)
+  {
+    psiChanged = false;
+    
+    rangeFRcm = psiDataToCentimeters(psiData[0]);  // front right
+    rangeFLcm = psiDataToCentimeters(psiData[1]);  // front left
+    rangeBRcm = psiDataToCentimeters(psiData[3]);  // back right
+    rangeBLcm = psiDataToCentimeters(psiData[2]);  // back left
+
+    printValue();
+    
+    setLeds();
+  }
+  delay(50);
+}
+
+int redTreshold = 40;
+int yellowTreshold = 80;
+
+void setLeds()
+{
+  digitalWrite(ledFRYPin, LOW);
+  digitalWrite(ledFRRPin, LOW);
+  digitalWrite(ledFLYPin, LOW);
+  digitalWrite(ledFLRPin, LOW);
+  digitalWrite(ledBRYPin, LOW);
+  digitalWrite(ledBRRPin, LOW);
+  digitalWrite(ledBLYPin, LOW);
+  digitalWrite(ledBLRPin, LOW);
+
+  if(rangeFRcm >= 0)
+  {
+    if(rangeFRcm < redTreshold)
+    {
+      digitalWrite(ledFRRPin, HIGH);
+    }
+    else if(rangeFRcm < yellowTreshold)
+    {
+      digitalWrite(ledFRYPin, HIGH);
+    }
+  }
+  
+  if(rangeFLcm >= 0)
+  {
+    if(rangeFLcm < redTreshold)
+    {
+      digitalWrite(ledFLRPin, HIGH);
+    }
+    else if(rangeFLcm < yellowTreshold)
+    {
+      digitalWrite(ledFLYPin, HIGH);
+    }
+  }
+    
+  if(rangeBRcm >= 0)
+  {
+    if(rangeBRcm < redTreshold)
+    {
+      digitalWrite(ledBRRPin, HIGH);
+    }
+    else if(rangeBRcm < yellowTreshold)
+    {
+      digitalWrite(ledBRYPin, HIGH);
+    }
+  }
+    
+  if(rangeBLcm >= 0)
+  {
+    if(rangeBLcm < redTreshold)
+    {
+      digitalWrite(ledBLRPin, HIGH);
+    }
+    else if(rangeBLcm < yellowTreshold)
+    {
+      digitalWrite(ledBLYPin, HIGH);
+    }
+  }
+}
+
+// ===============================================================================
+void test()
+{
+  for(int i=0; i < 5 ;i++)
+  {
+    testOne(ledFRYPin);
+    testOne(ledFRRPin);
+    testOne(ledFLYPin);
+    testOne(ledFLRPin);
+    
+    testOne(ledBRYPin);
+    testOne(ledBRRPin);
+    testOne(ledBLYPin);
+    testOne(ledBLRPin);
+  }
+}
+
+void testOne(int led)
+{
+  digitalWrite(led, HIGH);
+  digitalWrite(ledPin, HIGH);
+  delay(100);
+  digitalWrite(led, LOW);
+  digitalWrite(ledPin, LOW);
+  //delay(100);
+}
+
+// ===============================================================================
+// nice to have a LED blinking when signal is captured OK. Good for debugging too.
+void mLED_Red_On()
+{
+  digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+}
+
+void mLED_Red_Off()
+{
+  digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
+}
+
+/*
+// some debug related stuff:
+void mLED_Dbg_On()
+{
+ digitalWrite(dbgPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+}
+ 
+void mLED_Dbg_Off()
+{
+ digitalWrite(dbgPin, LOW);    // turn the LED off by making the voltage LOW
+}
+*/
 
 // Variables needed for state machine, time measurement, data accumulation, conversion.
 // they are used only by ISR, therefore volatile is not needed:
 unsigned long lastOnChangeMs = 0L;
 
-byte psiState = 0;  // car parking sensor interpreter (state machine) state:
+byte psiState = 0;	// car parking sensor interpreter (state machine) state:
                         // 0 = looking for sync pulse 
                         // 1 = in the sync pulse (2ms high at the beginning of 40ms sequence)
                         // 2 = nded sync pulse
@@ -34,12 +258,12 @@ byte psiState = 0;  // car parking sensor interpreter (state machine) state:
                         // 4 = converting raw data into 4 bytes, preparing 
 unsigned int psiIndex = 0;
 
-#define maxPsiBytes 80    // real number of bits is 32 for 4 sensors (64 for 8 ?).
-byte psiBytes[maxPsiBytes]; // raw bits' durations (in some units) go into this array - usually either "25" (1) or "50" (0).
+#define maxPsiBytes 80		// real number of bits is 32 for 4 sensors (64 for 8 ?).
+byte psiBytes[maxPsiBytes];	// raw bits' durations (in some units) go into this array - usually either "25" (1) or "50" (0).
 
 // this is where we copy collected raw data:
 unsigned int psiCount;
-byte psiRawData[maxPsiBytes]; // at the end of the packet all psiBytes[] is copied here, for multitask o pass it to the PC
+byte psiRawData[maxPsiBytes];	// at the end of the packet all psiBytes[] is copied here, for multitask o pass it to the PC
 unsigned long usLastOnChangeDown = 0;
 boolean isReversed;    // the signal is connected in a way that reverses logical level, i.e. through opto isolation chip.
 
@@ -78,25 +302,25 @@ void interrup_isr_onchange(void)
   // see which state we are in and work the state machine to read sequence bits:
   switch (psiState)
   {
-  case 0:   // in between pulses, ignoring noise, waiting for a long (>30ms) low on sensor pin.
+  case 0:		// in between pulses, ignoring noise, waiting for a long (>30ms) low on sensor pin.
     break;
 
-  case 1:   // ended sync pulse?
+  case 1:		// ended sync pulse?
     if(!isSignalHigh)
     {
       psiState = (byte)2;
     }
     break;
 
-  case 2:   // ended sync pulse?
+  case 2:		// ended sync pulse?
     if(isSignalHigh)
     {
       psiState = (byte)3;
-      psiIndex = 0; // start byte array (bit whacking)
+      psiIndex = 0;	// start byte array (bit whacking)
     }
     break;
 
-  case 3:   // bit whacking - processed inside YourHighPriorityISRCode() in main.c for speed
+  case 3:		// bit whacking - processed inside YourHighPriorityISRCode() in main.c for speed
     {
       
       // full bit pulse period is 1200us for PARKINGSENSOR_MODEL_1, 350us for PARKINGSENSOR_MODEL_2
@@ -133,7 +357,7 @@ void interrup_isr_onchange(void)
           // this way we will be getting a lot of "15" and "30" (or 6 and 12 for Model 2) and some out-of-whack numbers well above.
           // there is a lot of interrupting going on - USB and other timers, Ping CCP.
           // we may get delayed here - distorting the data 
-          psiBytes[psiIndex++] = (byte)usTimespan;  // save the bit - 25 or 50; timespanMs is from the rising front of this pulse
+          psiBytes[psiIndex++] = (byte)usTimespan;	// save the bit - 25 or 50; timespanMs is from the rising front of this pulse
 
           if(psiIndex >= (unsigned int)32)		// we reached the end of the transmission, 32 bytes - switch to state 4
           {
@@ -144,16 +368,16 @@ void interrup_isr_onchange(void)
     }
     break;
 
-  case 4:     // we are almost finished - just send what's been collected - the 32 bytes in 
+  case 4:			// we are almost finished - just send what's been collected - the 32 bytes in 
     // we come here on the falling edge of the last bit 
 
-    if(psiIndex == (unsigned int)32)  // double-check just in case
+    if(psiIndex == (unsigned int)32)	// double-check just in case
     {
       //mLED_Dbg_On();
       //mLED_Dbg_Off();
       int i;
       boolean goodSample = true;
-      psiCount = (unsigned int)0;   // prepare to mark it as invalid
+      psiCount = (unsigned int)0;		// prepare to mark it as invalid
 
       // when ready - copy and let main thread handle the data:
       for (i=0; (unsigned int)i < psiIndex ;i++)
@@ -169,7 +393,7 @@ void interrup_isr_onchange(void)
       }
       if(goodSample)
       {
-        psiCount = psiIndex;  // expect 32
+        psiCount = psiIndex;	// expect 32
         convertPsiData();
         psiChanged = true;
         mLED_Red_On();          // will stay on till the beginning of the next cycle
@@ -193,9 +417,9 @@ void convertPsiData(void)
 {
   int i = 0;
 
-  if(psiCount == (unsigned int)0)   // invalid sample (likely due to interrupts delays).
+  if(psiCount == (unsigned int)0)		// invalid sample (likely due to interrupts delays).
   {
-    while (i < 8) // 4 psi + 4 extra
+    while (i < 8)	// 4 psi + 4 extra
     {
       psiData[i++] = (byte)254;    // we signal this case with "254", as 255 is taken by "out of range".
     }
@@ -203,7 +427,7 @@ void convertPsiData(void)
   else
   {
     byte bt = 0;  // byte to be bitwhacked and shifted left
-    int cnt = psiCount;   // must be 32
+    int cnt = psiCount;		// must be 32
     volatile byte* pbt = psiData;
 
     // produce 4 bytes out of 32 numbers psiRawData[]:
@@ -259,4 +483,38 @@ int psiDataToCentimeters(byte dm)
 
   return ((int)dm) * 10;
 }
+
+void printValue() 
+{
+  Serial.print("!SNR:");
+  Serial.print(rangeFRcm);  // front right
+  Serial.print(",");
+  Serial.print(rangeFLcm);  // front left
+  Serial.print(",");
+  Serial.print(rangeBLcm);  // back left
+  Serial.print(",");
+  Serial.print(rangeBRcm);  // back right
+  /*     Serial.print("\t");
+   Serial.print(psiData[4]);  // raw byte
+   Serial.print("\t");
+   Serial.print(psiData[5]);  // raw byte
+   Serial.print("\t");
+   Serial.print(psiData[6]);  // raw byte
+   Serial.print("\t");
+   Serial.print(psiData[7]);  // raw byte
+   */
+  Serial.print("\n");
+  /*
+   Serial.print(psiRawData[0]);
+   Serial.print("***");
+   Serial.print(psiRawData[1]);
+   Serial.print("***");
+   Serial.print(psiRawData[2]);
+   Serial.print("***");
+   Serial.print(psiRawData[3]);
+   Serial.print("\n");
+   */
+}
+
+
 
