@@ -16,6 +16,7 @@ There are components based on:
 - Arduino:
 
  (a) ParkingSensorI2C: using "Witson® LED Display Car Vehicle Parking Reverse Backup Radar System with 4 Parking Sensors" available on Amazon - provides sonar-based obstacle detection
+ 
  (b) PluckyWheels: - an Arduino Mega based controller communicates to other components and takes commands from the C# code running on Raspberry Pi under Windows 10 IoT
 
 - Linux (Raspberry Pi 2, Raspbian OS):
@@ -29,5 +30,4 @@ The code is published under Apache License, Version 2.0 - this is a no-warranty 
 - you do not have to publish your changes, although doing so, donating and contributing code and feedback is always appreciated (https://www.paypal.me/vitalbytes).
 
 Have fun and feel free to provide feedback,
--- Sergei Grichine
-
+- Sergei Grichine   ( slg at quakemap.com )
