@@ -108,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BehaviorFactory.cs" />
+    <Compile Include="Behaviors\BehaviorStopShorty.cs" />
     <Compile Include="ShortyTheRobot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RobotShortyHardwareBridge.cs" />
@@ -123,25 +124,37 @@
       <Project>{df5797d7-1709-4c05-88de-312fced2ae41}</Project>
       <Name>ControlDevices</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Drive\Drive.csproj">
-      <Project>{49195127-cf6c-451a-9eaf-bd14ed1f9937}</Project>
-      <Name>Drive</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Exceptions\Exceptions.csproj">
-      <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
-      <Name>Exceptions</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Hardware\cmRobot.ElementUW\cmRobot.ElementUW.csproj">
       <Project>{067ac9bd-f314-4e46-bf20-8991337127f0}</Project>
       <Name>cmRobot.ElementUW</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibMapping\LibMapping.csproj">
+      <Project>{d04360b2-b477-494d-b046-f681d4a51366}</Project>
+      <Name>LibMapping</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibRobotDrive\LibRobotDrive.csproj">
+      <Project>{49195127-cf6c-451a-9eaf-bd14ed1f9937}</Project>
+      <Name>LibRobotDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibRobotExceptions\LibRobotExceptions.csproj">
+      <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
+      <Name>LibRobotExceptions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibRobotMath\LibRobotMath.csproj">
+      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
+      <Name>LibRobotMath</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibRobotSLAM\LibRobotSLAM.csproj">
+      <Project>{8150c19f-5151-47f7-b169-ecccf27cc2e5}</Project>
+      <Name>LibRobotSLAM</Name>
     </ProjectReference>
     <ProjectReference Include="..\LibRuntime\LibRuntime.csproj">
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Mapping\Mapping.csproj">
-      <Project>{d04360b2-b477-494d-b046-f681d4a51366}</Project>
-      <Name>Mapping</Name>
+    <ProjectReference Include="..\LibSensors\LibSensors.csproj">
+      <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
+      <Name>LibSensors</Name>
     </ProjectReference>
     <ProjectReference Include="..\RobotAbstraction\RobotAbstraction.csproj">
       <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>
@@ -150,14 +163,6 @@
     <ProjectReference Include="..\RobotBase\RobotBase.csproj">
       <Project>{63d901ea-57a0-431b-a6ff-bea3850abefe}</Project>
       <Name>RobotBase</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RobotMath\RobotMath.csproj">
-      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
-      <Name>RobotMath</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Sensors\Sensors.csproj">
-      <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
-      <Name>Sensors</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

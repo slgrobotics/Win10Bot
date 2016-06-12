@@ -48,6 +48,8 @@ namespace slg.RobotAbstraction
 
         ICompassCMPS03 produceCompassCMPS03(int i2CAddress, int updateFrequency, double headingChangedThreshold);
 
+        IAhrs produceAhrs(int i2CAddress, int updateFrequency, double headingChangedThreshold);
+
         IWheelEncoder produceWheelEncoder(WheelEncoderId wheelEncoderId, int updateFrequency, int resolution, int countChangedThreshold);
 
         IDifferentialMotorController produceDifferentialMotorController();

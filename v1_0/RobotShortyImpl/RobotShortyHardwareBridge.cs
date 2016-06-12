@@ -28,7 +28,7 @@ using slg.RobotBase;
 using slg.RobotAbstraction;
 using slg.RobotAbstraction.Drive;
 using slg.RobotAbstraction.Events;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 
 // specific Hardware Brick (i.e. Element):
 using cmRobot.Element;

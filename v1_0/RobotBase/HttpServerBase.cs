@@ -72,7 +72,16 @@ namespace slg.RobotBase
             listener.Control.KeepAlive = true;
             listener.Control.NoDelay = true;
 
-            listener.ConnectionReceived += async (s, e) => { await ProcessRequestAsync(e.Socket); };
+            listener.ConnectionReceived += async (s, e) => {
+                try
+                {
+                    await ProcessRequestAsync(e.Socket);
+                }
+                catch(Exception exc)
+                {
+                    ;
+                }
+            };
 
             Task.Run(async () => {
                                     await listener.BindServiceNameAsync(port.ToString(), SocketProtectionLevel.PlainSocket);
@@ -109,91 +118,103 @@ namespace slg.RobotBase
         {
             Interlocked.Increment(ref ConnectionsCount); // for debugging
 
+            bool keepAlive = false;
+
             try
             {
-                // this works for text only
-                StringBuilder request = new StringBuilder();
-                using (IInputStream input = socket.InputStream)
+                do
                 {
-                    byte[] data = new byte[BufferSize];
-                    IBuffer buffer = data.AsBuffer();
-                    uint dataRead = BufferSize;
-                    while (dataRead == BufferSize)
+                    // this works for text only
+                    StringBuilder request = new StringBuilder();
+                    IInputStream input = socket.InputStream;
+                    //using (IInputStream input = socket.InputStream)   -- cannot close anything in Keep-Alive mode
                     {
-                        IBuffer buf = await input.ReadAsync(buffer, BufferSize, InputStreamOptions.Partial);
-                        request.Append(Encoding.UTF8.GetString(data, 0, (int)buffer.Length));
-                        dataRead = buffer.Length;
-                    }
-                }
-
-                if (request.Length > 0)
-                {
-                    string[] split = request.Replace("\r", "").ToString().Split('\n');
-                    if(split.Length > 0)
-                    { 
-                        string requestMethod = split[0];
-                        string[] requestParts = requestMethod.Split(' ');
-
-                        if (requestParts.Length > 1)
+                        byte[] data = new byte[BufferSize];
+                        IBuffer buffer = data.AsBuffer();
+                        uint dataRead = BufferSize;
+                        while (dataRead == BufferSize)
                         {
-                            requestMethod = requestParts[0];
-                            string localPath = requestParts[1];
+                            IBuffer buf = await input.ReadAsync(buffer, BufferSize, InputStreamOptions.Partial);
+                            request.Append(Encoding.UTF8.GetString(data, 0, (int)buffer.Length));
+                            dataRead = buffer.Length;
+                        }
+                    }
 
-                            if (requestMethod == "GET")
+                    if (request.Length > 0)
+                    {
+                        keepAlive = request.ToString().IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        string[] split = request.Replace("\r", "").ToString().Split('\n');
+                        if (split.Length > 0)
+                        {
+                            string requestMethod = split[0];
+                            string[] requestParts = requestMethod.Split(' ');
+
+                            if (requestParts.Length > 1)
                             {
-                                // The format of an HTTP GET is to have the HTTP headers, followed by a blank line.
-                                //
-                                //  GET/default.html HTTP/1.1
-                                //  Host: 172.16.1.201:9098
-                                //  Connection:
-                                //  keep-alive
-                                //  Cache-Control: max-age=0
-                                //  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8,image/webp
-                                //  User-Agent: Mozilla/5.0 (iPad; CPU OS 9_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/43.0.2357.61 Mobile/13C75 Safari/600.1.4
-                                //  Accept-Encoding: gzip, deflate, sdch
-                                //  Accept-Language: en-US,en;q=0.8,ru;q=0.6
+                                requestMethod = requestParts[0];
+                                string localPath = requestParts[1];
 
-                                await WriteGETResponseAsync(localPath, socket);
-                            }
-                            else if (requestMethod == "POST")
-                            {
-                                // The format of an HTTP POST is to have the HTTP headers, followed by a blank line,
-                                // followed by the request body. The POST variables are stored as key-value pairs in the body:
-                                //
-                                //  POST /form HTTP/1.1
-                                //  Host: 172.16.1.201:9098
-                                //  Connection: keep-alive
-                                //  Content-Length: 25
-                                //  Origin: http://172.16.1.201:9098
-                                //  Content-Type: application/x-www-form-urlencoded
-                                //  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8,image/webp
-                                //  Referer: http://172.16.1.201:9098/test
-                                //  User-Agent: Mozilla/5.0 (iPad; CPU OS 9_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/43.0.2357.61 Mobile/13C75 Safari/600.1.4
-                                //  Accept-Encoding: gzip, deflate
-                                //  Accept-Language: en-US,en;q=0.8,ru;q=0.6
-                                //                                                   <== this is empty line
-                                //  foo=foovalue&bar=barvalue
-
-                                List<string> splitList = split.ToList();
-                                int i = splitList.IndexOf("");
-                                //string postData = splitList[i+1];   // foo=foovalue&bar=barvalue
-
-                                StringBuilder sb = new StringBuilder();
-                                for (i = i + 1; i < splitList.Count; i++)
+                                if (requestMethod == "GET")
                                 {
-                                    sb.AppendLine(splitList[i]);
-                                }
-                                string postData = sb.ToString();
+                                    // The format of an HTTP GET is to have the HTTP headers, followed by a blank line.
+                                    //
+                                    //  GET /default.html HTTP/1.1
+                                    //  Host: 172.16.1.201:9098
+                                    //  Connection: keep-alive
+                                    //  Cache-Control: max-age=0
+                                    //  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8,image/webp
+                                    //  User-Agent: Mozilla/5.0 (iPad; CPU OS 9_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/43.0.2357.61 Mobile/13C75 Safari/600.1.4
+                                    //  Accept-Encoding: gzip, deflate, sdch
+                                    //  Accept-Language: en-US,en;q=0.8,ru;q=0.6
 
-                                await WritePOSTResponseAsync(localPath, socket, postData);
-                            }
-                            else
-                            {
-                                throw new InvalidDataException("HTTP method not supported: " + requestMethod + "   requestContent: " + localPath);
+                                    await WriteGETResponseAsync(localPath, socket, keepAlive);
+                                }
+                                else if (requestMethod == "POST")
+                                {
+                                    // The format of an HTTP POST is to have the HTTP headers, followed by a blank line,
+                                    // followed by the request body. The POST variables are stored as key-value pairs in the body:
+                                    //
+                                    //  POST /form HTTP/1.1
+                                    //  Host: 172.16.1.201:9098
+                                    //  Connection: keep-alive
+                                    //  Content-Length: 25
+                                    //  Origin: http://172.16.1.201:9098
+                                    //  Content-Type: application/x-www-form-urlencoded
+                                    //  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8,image/webp
+                                    //  Referer: http://172.16.1.201:9098/test
+                                    //  User-Agent: Mozilla/5.0 (iPad; CPU OS 9_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/43.0.2357.61 Mobile/13C75 Safari/600.1.4
+                                    //  Accept-Encoding: gzip, deflate
+                                    //  Accept-Language: en-US,en;q=0.8,ru;q=0.6
+                                    //                                                   <== this is empty line
+                                    //  foo=foovalue&bar=barvalue
+
+                                    List<string> splitList = split.ToList();
+                                    int i = splitList.IndexOf("");
+                                    //string postData = splitList[i+1];   // foo=foovalue&bar=barvalue
+
+                                    StringBuilder sb = new StringBuilder();
+                                    for (i = i + 1; i < splitList.Count; i++)
+                                    {
+                                        sb.AppendLine(splitList[i]);
+                                    }
+                                    string postData = sb.ToString();
+
+                                    await WritePOSTResponseAsync(localPath, socket, keepAlive, postData);
+                                }
+                                else
+                                {
+                                    throw new InvalidDataException("HTTP method not supported: " + requestMethod + "   requestContent: " + localPath);
+                                }
                             }
                         }
                     }
-                }
+                } while (keepAlive);
+            }
+            catch (ObjectDisposedException exc)
+            {
+                // we hope that client will keep connection alive, but they closed it. No big deal. They can do it.
+                ;
             }
             catch (Exception exc)
             {
@@ -202,50 +223,56 @@ namespace slg.RobotBase
 
             Interlocked.Decrement(ref ConnectionsCount); // for debugging
 
-            // socket.Dispose();     we are trying to keep-alive
+            // socket.Dispose();     we are trying to keep-alive - cannot close anything in Keep-Alive mode
         }
 
         #endregion // Request and Response
 
         #region GET and POST Response
 
-        private async Task WriteGETResponseAsync(string localPath, StreamSocket socket)
+        private async Task WriteGETResponseAsync(string localPath, StreamSocket socket, bool keepAlive)
         {
             string html = await GetPageContent(localPath, null);
 
-            await WritePageContent(socket, html);
+            await WritePageContent(socket, html, keepAlive);
         }
 
-        private async Task WritePOSTResponseAsync(string localPath, StreamSocket socket, string postData)
+        private async Task WritePOSTResponseAsync(string localPath, StreamSocket socket, bool keepAlive, string postData)
         {
             string html = await GetPageContent(localPath, postData);
 
-            await WritePageContent(socket, html);
+            await WritePageContent(socket, html, keepAlive);
         }
 
-        //private string headerFormat = "HTTP/1.1 200 OK\r\nContent-Length: {0}\r\nConnection: Keep-Alive\r\nKeep-Alive:timeout=5, max=100\r\n\r\n";
+        private string headerKeepAliveFormat = "HTTP/1.1 200 OK\r\nContent-Length: {0}\r\nConnection: Keep-Alive\r\nKeep-Alive:timeout=5, max=100\r\nCache-Control: no-cache, no-store, must-revalidate\r\n\r\n";
         private string headerFormat = "HTTP/1.1 200 OK\r\nContent-Length: {0}\r\nConnection: close\r\n\r\n";
 
-        private async Task WritePageContent(StreamSocket socket, string html)
+        private async Task WritePageContent(StreamSocket socket, string html, bool keepAlive)
         {
             // respond with the html:
-            using (IOutputStream output = socket.OutputStream)
+            IOutputStream output = socket.OutputStream;
+            //using (IOutputStream output = socket.OutputStream)   -- cannot close anything in Keep-Alive mode
             {
                 //using (Stream resp = output.AsStreamForWrite())   -- cannot use this, will be blocked on Dispose()
-                Stream resp = output.AsStreamForWrite();
+                Stream respStream = output.AsStreamForWrite();
                 {
                     //resp.WriteTimeout = 1000;    // milliseconds  -- does not work here
 
                     // Look in the Data subdirectory of the app package
                     byte[] bodyArray = Encoding.UTF8.GetBytes(html);
                     MemoryStream stream = new MemoryStream(bodyArray);
-                    string header = String.Format(headerFormat, stream.Length);
+                    string header = String.Format(keepAlive ? headerKeepAliveFormat : headerFormat, stream.Length);
                     byte[] headerArray = Encoding.UTF8.GetBytes(header);
 
-                    await resp.WriteAsync(headerArray, 0, headerArray.Length, tokenSource.Token);
-                    await stream.CopyToAsync(resp, bodyArray.Length, tokenSource.Token);
-                    await resp.FlushAsync(tokenSource.Token);
+                    await respStream.WriteAsync(headerArray, 0, headerArray.Length, tokenSource.Token);
+                    await stream.CopyToAsync(respStream, bodyArray.Length, tokenSource.Token);
+                    await respStream.FlushAsync(tokenSource.Token);
                 }
+            }
+
+            if (!keepAlive)
+            {
+                output.Dispose();
             }
         }
 

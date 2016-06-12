@@ -16,7 +16,7 @@
  */
 
 
-using slg.Mapping;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Interfaces
 {
@@ -31,6 +31,12 @@ namespace slg.RobotBase.Interfaces
         /// omega, robot "unicycle" turn rate, radians per second
         /// </summary>
         double omega { get; set; }
+
+        /// <summary>
+        /// desired power level, percent of max speed or power available to the robot's drive
+        /// must be used by all behaviors when calculating drive inputs
+        /// </summary>
+        int powerLevelPercent { get; set; }
 
         /// <summary>
         /// Goal Bearing, degrees, can be null if not set, always constraines to 0...360 when set.

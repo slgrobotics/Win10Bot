@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 using slg.RobotAbstraction;
 using Windows.Storage.Streams;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 using System.IO;
 
 namespace slg.LibCommunication
@@ -340,7 +340,7 @@ namespace slg.LibCommunication
         {
             if (serialDevice != null)
             {
-                serialDevice.Dispose();
+                serialDevice.Dispose();   // throws unhandled COM component exception
                 serialDevice = null;
             }
         }

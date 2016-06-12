@@ -114,19 +114,20 @@
     <Compile Include="HardwareComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sensors\AnalogSensor.cs" />
+    <Compile Include="Sensors\MotionPlug.cs" />
     <Compile Include="Sensors\OdometryReader.cs" />
     <Compile Include="Sensors\ParkingSonar.cs" />
     <Compile Include="Sensors\WheelEncoder.cs" />
     <EmbeddedResource Include="Properties\ArduinoRobotHardware.rd.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Exceptions\Exceptions.csproj">
-      <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
-      <Name>Exceptions</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\LibCommunication\LibCommunication.csproj">
       <Project>{b80c01e4-f405-457f-9b98-8e258cb82085}</Project>
       <Name>LibCommunication</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LibRobotExceptions\LibRobotExceptions.csproj">
+      <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
+      <Name>LibRobotExceptions</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\RobotAbstraction\RobotAbstraction.csproj">
       <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>

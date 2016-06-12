@@ -127,6 +127,7 @@
     <Compile Include="Ids\WheelEncoderId.cs" />
     <Compile Include="IHardwareComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Sensors\IAhrs.cs" />
     <Compile Include="Sensors\IAnalogSensor.cs" />
     <Compile Include="Sensors\ICompassCMPS03.cs" />
     <Compile Include="Sensors\IOdometry.cs" />
@@ -135,12 +136,6 @@
     <Compile Include="Sensors\ISonarSRF04.cs" />
     <Compile Include="Sensors\ITargetingCamera.cs" />
     <Content Include="Properties\RobotAbstraction.rd.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Exceptions\Exceptions.csproj">
-      <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
-      <Name>Exceptions</Name>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

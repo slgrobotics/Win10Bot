@@ -53,12 +53,22 @@ namespace cmRobot.Element.Controllers
         /// based on the LeftMotorSpeed and RightMotorSpeed properties.  If RampingEnabled property is set to true,
         /// then the motors will be ramped up to speed (SEE USER GUIDE FOR PROPER RAMPING OPERATION).
         /// </summary>
-        public void Drive()
+        public void DriveMotors()
         {
             if (_rampingEnabled)
                 Element.CommunicationTask.EnqueueCommJob(Priority.High, rampCommJob);
             else
                 Element.CommunicationTask.EnqueueCommJob(Priority.High, commJob);
+        }
+
+        public void FeatherMotors()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void BrakeMotors()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -223,7 +233,7 @@ namespace cmRobot.Element.Controllers
 			_rightVel = Int32.Parse(vels[1]);
 		}
 
-		#endregion
+        #endregion
 
         #region Privates
 

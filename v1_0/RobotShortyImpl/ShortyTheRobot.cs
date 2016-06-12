@@ -22,18 +22,19 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-using slg.RobotAbstraction.Drive;
 using slg.LibRuntime;
+using slg.LibMapping;
+using slg.LibRobotExceptions;
+using slg.LibSensors;
+using slg.LibRobotDrive;
 using slg.RobotBase.Data;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
-using slg.Drive;
+using slg.RobotAbstraction.Drive;
 using slg.ControlDevices;
-using slg.Sensors;
 using slg.Behaviors;
-using slg.Mapping;
-using slg.RobotExceptions;
 using System.Threading;
+using slg.LibRobotSLAM;
 
 namespace slg.RobotShortyImpl
 {
@@ -74,6 +75,7 @@ namespace slg.RobotShortyImpl
         private IDrive driveController;
         private IDriveGeometry driveGeometry;
         private BehaviorFactory behaviorFactory;
+        private IRobotSLAM robotSlam;
 
         private double lng = -117.671550d;
         private double lat = 33.600222d;
@@ -117,7 +119,7 @@ namespace slg.RobotShortyImpl
 
             InitDrive();
 
-            behaviorFactory = new BehaviorFactory(dispatcher, driveGeometry, speaker);
+            behaviorFactory = new BehaviorFactory(subsumptionTaskDispatcher, driveGeometry, speaker);
 
             // we can set behavior combo now, or allow ControlDeviceCommand to set it later.
             //behaviorFactory.produce(BehaviorCompositionType.JoystickAndStop);
@@ -125,9 +127,13 @@ namespace slg.RobotShortyImpl
             robotState = new RobotState();
             robotPose = new RobotPose();
 
+            robotState.powerLevelPercent = 100;  // can be changed any time. Used by behaviors.
+
             robotPose.geoPosition.moveTo(lng, lat, elev);   // will be set to GPS coordinates, if available
             robotPose.direction.heading = headingDegrees;   // will be set to Compass Heading, if available
             robotPose.resetXY();
+
+            robotSlam = new RobotSLAM();
 
             await InitComm(cts);     // may throw exceptions
 
@@ -241,7 +247,7 @@ namespace slg.RobotShortyImpl
                 Task.Factory.StartNew(driveController.Close);
 
                 // wait a bit (pumping events) and stop communication with the Hardware Brick (i.e. Element board):
-                CloseCommunication();
+                CloseCommunication().Wait();
             }
         }
 
@@ -335,7 +341,7 @@ namespace slg.RobotShortyImpl
             if (isDispatcherCommand)
             {
                 // dispatcher will be forwarding command like "speed" to behaviors
-                dispatcher.ControlDeviceCommand(command);
+                subsumptionTaskDispatcher.ControlDeviceCommand(command);
             }
         }
 
@@ -385,10 +391,11 @@ namespace slg.RobotShortyImpl
                 robotPose = this.robotPose
             };
 
-            EvaluatePoseAndState(behaviorData);
+            // use sensor data to update robotPose:
+            robotSlam.EvaluatePoseAndState(behaviorData, driveController);
 
             // populate all behaviors with current behaviorData:
-            foreach (ISubsumptionTask task in dispatcher.Tasks)
+            foreach (ISubsumptionTask task in subsumptionTaskDispatcher.Tasks)
             {
                 BehaviorBase behavior = task as BehaviorBase;
 
@@ -398,7 +405,7 @@ namespace slg.RobotShortyImpl
                 }
             }
 
-            dispatcher.Process();     // calls behaviors, which take sensor outputs, and may compute drive inputs
+            subsumptionTaskDispatcher.Process();     // calls behaviors, which take sensor outputs, and may compute drive inputs
 
             // look at ActiveTasksCount - it is an indicator of behaviors completed or removed. Zero count means we may need new behaviors combo.
             MonitorDispatcherActivity();
@@ -433,7 +440,7 @@ namespace slg.RobotShortyImpl
         private void MonitorDispatcherActivity()
         {
             // ActiveTasksCount is indicator of behaviors completed or removed. Zero count means we may need new behaviors combo.
-            int dispatcherActiveTasksCount = dispatcher.ActiveTasksCount;
+            int dispatcherActiveTasksCount = subsumptionTaskDispatcher.ActiveTasksCount;
 
             if (dispatcherActiveTasksCount != lastActiveTasksCount)
             {
@@ -456,7 +463,7 @@ namespace slg.RobotShortyImpl
             string gbn = coordinatorData.GrabbingBehaviorName;
             if (!string.IsNullOrWhiteSpace(gbn))
             {
-                ISubsumptionTask grabber = (from b in dispatcher.Tasks where b.name == gbn select b).FirstOrDefault();
+                ISubsumptionTask grabber = (from b in subsumptionTaskDispatcher.Tasks where b.name == gbn select b).FirstOrDefault();
 
                 if (grabber != null)
                 {
@@ -468,17 +475,6 @@ namespace slg.RobotShortyImpl
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// takes current state/pose, new sensors data and evaluates new state and pose
-        /// </summary>
-        /// <param name="behaviorData"></param>
-        private void EvaluatePoseAndState(IBehaviorData behaviorData)
-        {
-            long[] encoderTicks = new long[] { behaviorData.sensorsData.WheelEncoderLeftTicks, behaviorData.sensorsData.WheelEncoderRightTicks };
-
-            driveController.OdometryCompute(behaviorData.robotPose, encoderTicks);
         }
 
         #endregion // Main Loop processing

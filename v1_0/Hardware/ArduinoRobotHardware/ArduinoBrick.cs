@@ -23,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 using slg.RobotAbstraction;
 using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Events;
@@ -87,6 +87,11 @@ namespace slg.ArduinoRobotHardware
         public ICompassCMPS03 produceCompassCMPS03(int i2CAddress, int updateFrequency, double headingChangedThreshold)
         {
             throw new NotImplementedException();
+        }
+
+        public IAhrs produceAhrs(int i2CAddress, int updateFrequency, double headingChangedThreshold)
+        {
+            return new MotionPlug(commTask, tokenSource.Token, updateFrequency);
         }
 
         public IWheelEncoder produceWheelEncoder(WheelEncoderId wheelEncoderId, int updateFrequency, int resolution, int countChangedThreshold)

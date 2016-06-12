@@ -44,7 +44,7 @@ using Windows.Devices.Enumeration;
 using slg.RobotShortyImpl;
 using slg.RobotBase.Interfaces;
 using slg.RobotBase.Data;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 using slg.ControlDevices;
 using slg.Display;
 using slg.DisplayWebServer;
@@ -91,6 +91,8 @@ namespace RobotShorty
             speakerImpl = new Speaker(media);
             joystick = new GenericJoystick();
             InitWebServer(serialPorts);
+
+            Speak("Ready");
         }
 
         private void InitWebServer(List<SerialPortTuple> serialPorts)

@@ -21,8 +21,8 @@ using System.Linq;
 using System.Text;
 
 using slg.RobotBase.Interfaces;
-using slg.RobotMath;
-using slg.Mapping;
+using slg.LibRobotMath;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Bases
 {
@@ -37,29 +37,29 @@ namespace slg.RobotBase.Bases
         /// <summary>
         /// meters, coordinate along the axis of the robot, positive - front direction
         /// </summary>
-        public double X     { get; set; }
+        public double XMeters     { get; set; }
 
         /// <summary>
         /// meters, coordinate perpendicular to the axis of the robot, positive - left direction
         /// </summary>
-        public double Y     { get; set; }
+        public double YMeters     { get; set; }
 
         /// <summary>
         /// radians, zero when along X, positive towards left turn
         /// </summary>
-        public double Theta { get; set; }
+        public double ThetaRadians { get; set; }
 
         public PoseBase()
         {
-            X = 0.0d;
-            Y = 0.0d;
-            Theta = 0.0d;
+            XMeters = 0.0d;
+            YMeters = 0.0d;
+            ThetaRadians = 0.0d;
         }
 
         public virtual void translate(double dXMeters, double dYMeters)
         {
-            X += dXMeters;
-            Y += dYMeters;
+            XMeters += dXMeters;
+            YMeters += dYMeters;
         }
 
         public virtual void translate(Distance dist, IDirection dir)
@@ -72,18 +72,18 @@ namespace slg.RobotBase.Bases
 
         public virtual void rotate(double alphaRad)
         {
-            Theta -= alphaRad;  // alphaRad is positive towards right turn
+            ThetaRadians -= alphaRad;  // alphaRad is positive towards right turn
         }
 
         public void resetXY()
         {
-            X = 0.0d;
-            Y = 0.0d;
+            XMeters = 0.0d;
+            YMeters = 0.0d;
         }
 
         public void resetRotation()
         {
-            Theta = 0.0d;
+            ThetaRadians = 0.0d;
         }
 
         /// <summary>
@@ -97,11 +97,11 @@ namespace slg.RobotBase.Bases
         {
             PoseBase p = (PoseBase)p1.Clone();
 
-            double alpha = p1.Theta + Math.Atan2(p2.Y, p2.X);     // polar coord - angle component of p2 coordinate
-            double length = Math.Sqrt(p2.X * p2.X + p2.Y * p2.Y); // polar coord - length component of p2 coordinate
+            double alpha = p1.ThetaRadians + Math.Atan2(p2.YMeters, p2.XMeters);     // polar coord - angle component of p2 coordinate
+            double length = Math.Sqrt(p2.XMeters * p2.XMeters + p2.YMeters * p2.YMeters); // polar coord - length component of p2 coordinate
 
             p.translate(length * Math.Cos(alpha), length * Math.Sin(alpha));
-            p.rotate(-p2.Theta);    // rotate normally takes positive-to-right argument
+            p.rotate(-p2.ThetaRadians);    // rotate normally takes positive-to-right argument
 
             // same as:
             //double x1 = p1.X + length * Math.Cos(alpha);    // abs coords
@@ -118,14 +118,14 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return string.Format("X={0:0.00}   Y={1:0.00}   Theta={2:0.00}", X, Y, Theta);
+            return string.Format("X={0:0.00} m   Y={1:0.00} m   Theta={2:0.00} rad", XMeters, YMeters, ThetaRadians);
         }
 
         // ICloneable implmentation:
 
         public object Clone()
         {
-            return new PoseBase() { X = this.X, Y = this.Y, Theta = this.Theta };
+            return new PoseBase() { XMeters = this.XMeters, YMeters = this.YMeters, ThetaRadians = this.ThetaRadians };
         }
     }
 }

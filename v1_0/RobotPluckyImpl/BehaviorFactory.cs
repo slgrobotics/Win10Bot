@@ -25,6 +25,7 @@ using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
 using slg.LibRuntime;
 using slg.Behaviors;
+using slg.RobotPluckyImpl.Behaviors;
 
 namespace slg.RobotPluckyImpl
 {
@@ -33,6 +34,7 @@ namespace slg.RobotPluckyImpl
         JoystickAndStop,
         CruiseAndStop,
         AroundTheBlock,
+        ChaseColorBlob,
         Escape
     }
 
@@ -101,7 +103,7 @@ namespace slg.RobotPluckyImpl
                     //    speaker = this.speaker
                     //});
 
-                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 10.0d, 10.0d)
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 10.0d, 5.0d)
                     {
                         name = "BehaviorGoToAngle",
                         speaker = this.speaker
@@ -125,11 +127,11 @@ namespace slg.RobotPluckyImpl
                         //BehaviorTerminateCondition = bd => { return bd.sensorsData.IrRearMeters < 0.2d; }
                     });
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    subsumptionDispatcher.Dispatch(new BehaviorStopPlucky()
                     {
                         name = "BehaviorStop",
                         speaker = this.speaker,
-                        tresholdStopMeters = 0.2d
+                        tresholdStopMeters = 0.4d
                     });
 
                     subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
@@ -170,8 +172,8 @@ namespace slg.RobotPluckyImpl
                             (DateTime.Now - activatedFW).TotalSeconds > 5.0d
                             //&& Math.Abs(DirectionMath.to180(bd.sensorsData.CompassHeadingDegrees - initialCompassHeadingDegrees)) < 5.0d;
 
-                            && Math.Abs(bd.robotPose.X) < 0.08d   // forward
-                            && Math.Abs(bd.robotPose.Y) < 0.25d;  // sides
+                            && Math.Abs(bd.robotPose.XMeters) < 0.08d   // forward
+                            && Math.Abs(bd.robotPose.YMeters) < 0.25d;  // sides
 
                         return isFinishedFW;
                     };
@@ -197,10 +199,10 @@ namespace slg.RobotPluckyImpl
                             bfw.fireOnRight = true;
                         }
 
-                        if (bfw.fireOnLeft || bfw.fireOnRight)
+                        if ((bfw.fireOnLeft || bfw.fireOnRight) && bd.sensorsData.CompassHeadingDegrees.HasValue)
                         {
                             // remember the initial CompassHeadingDegrees:
-                            initialCompassHeadingDegrees = bd.sensorsData.CompassHeadingDegrees;
+                            initialCompassHeadingDegrees = bd.sensorsData.CompassHeadingDegrees.Value;
                             activatedFW = DateTime.Now;
                         }
 
@@ -208,11 +210,44 @@ namespace slg.RobotPluckyImpl
                     };
                     subsumptionDispatcher.Dispatch(bfw);
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    subsumptionDispatcher.Dispatch(new BehaviorStopPlucky()
                     {
                         name = "BehaviorStop",
                         speaker = this.speaker,
                         BehaviorActivateCondition = bd => { return true; }
+                    });
+
+                    break;
+
+                case BehaviorCompositionType.ChaseColorBlob:
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToPixy(driveGeometry) {
+                        name = "BehaviorGoToPixy",
+                        speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 100.0d, 100.0d)
+                    {
+                        name = "BehaviorGoToAngle",
+                        speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorStopPlucky()
+                    {
+                        name = "BehaviorStop",
+                        speaker = this.speaker,
+                        tresholdStopMeters = 0.6d,
+                        //BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd); }
+                        //BehaviorActivateCondition = bd => { return false; }
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
+                    {
+                        name = "Escape",
+                        speaker = this.speaker,
+                        BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                        BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
+                        BehaviorTerminateCondition = bd => { return false; }   // do not terminate
                     });
 
                     break;
@@ -251,7 +286,7 @@ namespace slg.RobotPluckyImpl
 
                     BehaviorBase.getCoordinatorData().EnablingRequest = "Escape";   // set it immediately to see the escape action
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop() {
+                    subsumptionDispatcher.Dispatch(new BehaviorStopPlucky() {
                         name = "BehaviorStop",
                         speaker = this.speaker
                     });

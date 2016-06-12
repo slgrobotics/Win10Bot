@@ -23,9 +23,9 @@ using System.Threading;
 using System.Diagnostics;
 
 using slg.LibRuntime;
+using slg.LibMapping;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
-using slg.Mapping;
 
 namespace slg.Behaviors
 {

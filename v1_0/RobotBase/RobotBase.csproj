@@ -136,6 +136,7 @@
     <Compile Include="Interfaces\IRobotDashboard.cs" />
     <Compile Include="Interfaces\IRobotPhysics.cs" />
     <Compile Include="Interfaces\IRobotPose.cs" />
+    <Compile Include="Interfaces\IRobotSLAM.cs" />
     <Compile Include="Interfaces\IRobotState.cs" />
     <Compile Include="Interfaces\ISensorsController.cs" />
     <Compile Include="Interfaces\ISensorsData.cs" />
@@ -149,21 +150,21 @@
     <Content Include="Properties\RobotBase.rd.xml" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LibMapping\LibMapping.csproj">
+      <Project>{d04360b2-b477-494d-b046-f681d4a51366}</Project>
+      <Name>LibMapping</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibRobotMath\LibRobotMath.csproj">
+      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
+      <Name>LibRobotMath</Name>
+    </ProjectReference>
     <ProjectReference Include="..\LibRuntime\LibRuntime.csproj">
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Mapping\Mapping.csproj">
-      <Project>{d04360b2-b477-494d-b046-f681d4a51366}</Project>
-      <Name>Mapping</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RobotAbstraction\RobotAbstraction.csproj">
       <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>
       <Name>RobotAbstraction</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RobotMath\RobotMath.csproj">
-      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
-      <Name>RobotMath</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

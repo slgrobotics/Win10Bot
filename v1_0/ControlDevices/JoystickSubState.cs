@@ -25,7 +25,7 @@ using System.Runtime.Serialization;
 using Windows.Devices.HumanInterfaceDevice;
 
 using slg.RobotBase.Interfaces;
-using slg.RobotMath;
+using slg.LibRobotMath;
 
 namespace slg.ControlDevices
 {

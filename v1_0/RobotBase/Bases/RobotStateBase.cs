@@ -21,8 +21,8 @@ using System.Linq;
 using System.Text;
 
 using slg.RobotBase.Interfaces;
-using slg.Mapping;
-using slg.RobotMath;
+using slg.LibMapping;
+using slg.LibRobotMath;
 
 namespace slg.RobotBase.Bases
 {
@@ -37,6 +37,12 @@ namespace slg.RobotBase.Bases
         /// omega, robot "unicycle" turn rate, radians per second
         /// </summary>
         public double omega { get; set; }
+
+        /// <summary>
+        /// desired power level, percent of max speed or power available to the robot's drive
+        /// must be used by all behaviors when calculating drive inputs
+        /// </summary>
+        public int powerLevelPercent { get; set; }
 
         private double? _goalBearingDegrees;
 
@@ -87,8 +93,9 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return String.Format("velocity={0} m/s ({1} cm/s)    omega={2} rad/s ({3} degrees/s)    goal at: {4} / {5} degrees, {6} meters",
-                                  velocity, Math.Round(velocity * 100.0), omega, Math.Round(omega * 180.0d / Math.PI), goalBearingDegrees, goalBearingRelativeDegrees, goalDistanceMeters);
+            return String.Format("velocity={0} m/s ({1} cm/s)    omega={2} rad/s ({3} degrees/s)    power {4}    goal at: {5} abs / {6} rel degrees, {7} meters",
+                                  velocity, Math.Round(velocity * 100.0), omega, Math.Round(omega * 180.0d / Math.PI), powerLevelPercent,
+                                  goalBearingDegrees, goalBearingRelativeDegrees, goalDistanceMeters);
         }
     }
 }

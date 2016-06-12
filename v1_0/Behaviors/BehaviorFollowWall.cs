@@ -85,9 +85,9 @@ namespace slg.Behaviors
                 //return (DateTime.Now - started).TotalSeconds > 6.0d;
 
                 double? goalBearing = bd.robotState.goalBearingDegrees;
-                if (goalBearing.HasValue)
+                if (goalBearing.HasValue && bd.sensorsData.CompassHeadingDegrees.HasValue)  // behaviorData.robotPose.direction.heading ?
                 {
-                    double heading = bd.sensorsData.CompassHeadingDegrees;
+                    double heading = bd.sensorsData.CompassHeadingDegrees.Value;
                     if (Math.Abs(heading - goalBearing.Value) < 10.0d)
                     {
                         deactivatedLast = DateTime.Now;
@@ -198,7 +198,7 @@ namespace slg.Behaviors
                     requestedVelocity = ToVelocity(wallAhead ? 0.0d : cruiseSpeed);
                     requestedOmega = avoidanceOmega;
 
-                    Debug.WriteLine("BehaviorFollowWall: requestedVelocity=" + requestedVelocity + "    avoidanceOmega=" + avoidanceOmega + "  X=" + behaviorData.robotPose.X + "  Y=" + behaviorData.robotPose.Y + "    seconds:" + (DateTime.Now - FiredOnTimestamp).TotalSeconds);
+                    Debug.WriteLine("BehaviorFollowWall: requestedVelocity=" + requestedVelocity + "    avoidanceOmega=" + avoidanceOmega + "  X=" + behaviorData.robotPose.XMeters + "  Y=" + behaviorData.robotPose.YMeters + "    seconds:" + (DateTime.Now - FiredOnTimestamp).TotalSeconds);
 
                     setVelocityAndOmega(requestedVelocity, requestedOmega);
 

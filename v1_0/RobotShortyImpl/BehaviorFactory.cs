@@ -25,6 +25,7 @@ using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
 using slg.LibRuntime;
 using slg.Behaviors;
+using slg.RobotShortyImpl.Behaviors;
 
 namespace slg.RobotShortyImpl
 {
@@ -125,7 +126,7 @@ namespace slg.RobotShortyImpl
                         //BehaviorTerminateCondition = bd => { return bd.sensorsData.IrRearMeters < 0.2d; }
                     });
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    subsumptionDispatcher.Dispatch(new BehaviorStopShorty()
                     {
                         name = "BehaviorStop",
                         speaker = this.speaker,
@@ -170,8 +171,8 @@ namespace slg.RobotShortyImpl
                             (DateTime.Now - activatedFW).TotalSeconds > 5.0d
                             //&& Math.Abs(DirectionMath.to180(bd.sensorsData.CompassHeadingDegrees - initialCompassHeadingDegrees)) < 5.0d;
 
-                            && Math.Abs(bd.robotPose.X) < 0.08d   // forward
-                            && Math.Abs(bd.robotPose.Y) < 0.25d;  // sides
+                            && Math.Abs(bd.robotPose.XMeters) < 0.08d   // forward
+                            && Math.Abs(bd.robotPose.YMeters) < 0.25d;  // sides
 
                         return isFinishedFW;
                     };
@@ -197,10 +198,10 @@ namespace slg.RobotShortyImpl
                             bfw.fireOnRight = true;
                         }
 
-                        if (bfw.fireOnLeft || bfw.fireOnRight)
+                        if ((bfw.fireOnLeft || bfw.fireOnRight) && bd.sensorsData.CompassHeadingDegrees.HasValue)
                         {
                             // remember the initial CompassHeadingDegrees:
-                            initialCompassHeadingDegrees = bd.sensorsData.CompassHeadingDegrees;
+                            initialCompassHeadingDegrees = bd.sensorsData.CompassHeadingDegrees.Value;
                             activatedFW = DateTime.Now;
                         }
 
@@ -208,7 +209,7 @@ namespace slg.RobotShortyImpl
                     };
                     subsumptionDispatcher.Dispatch(bfw);
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop()
+                    subsumptionDispatcher.Dispatch(new BehaviorStopShorty()
                     {
                         name = "BehaviorStop",
                         speaker = this.speaker,
@@ -251,7 +252,7 @@ namespace slg.RobotShortyImpl
 
                     BehaviorBase.getCoordinatorData().EnablingRequest = "Escape";   // set it immediately to see the escape action
 
-                    subsumptionDispatcher.Dispatch(new BehaviorStop() {
+                    subsumptionDispatcher.Dispatch(new BehaviorStopShorty() {
                         name = "BehaviorStop",
                         speaker = this.speaker
                     });

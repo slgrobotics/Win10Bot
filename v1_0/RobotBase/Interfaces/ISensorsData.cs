@@ -57,7 +57,7 @@ namespace slg.RobotBase.Interfaces
         long WheelEncoderRightTicks { get; }
 
         // Compass reading - for example, CMPS03 Compass connected via I2C
-        double CompassHeadingDegrees { get; set; }
+        double? CompassHeadingDegrees { get; set; }
 
         // Targeting camera (i.e. Pixy Camera) bearing to a detected object:
         double? TargetingCameraBearingDegrees { get; set; }

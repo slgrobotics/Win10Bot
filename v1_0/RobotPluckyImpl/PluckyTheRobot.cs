@@ -26,13 +26,14 @@ using slg.LibRuntime;
 using slg.RobotBase.Data;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
-using slg.Drive;
+using slg.LibRobotDrive;
 using slg.ControlDevices;
-using slg.Sensors;
+using slg.LibSensors;
 using slg.Behaviors;
-using slg.Mapping;
-using slg.RobotExceptions;
+using slg.LibMapping;
+using slg.LibRobotExceptions;
 using slg.RobotAbstraction.Sensors;
+using slg.LibRobotSLAM;
 
 namespace slg.RobotPluckyImpl
 {
@@ -75,6 +76,7 @@ namespace slg.RobotPluckyImpl
         private IDriveGeometry driveGeometry;
         private IOdometry odometry;
         private BehaviorFactory behaviorFactory;
+        private IRobotSLAM robotSlam;
 
         private double lng = -117.671550d;
         private double lat = 33.600222d;
@@ -114,11 +116,11 @@ namespace slg.RobotPluckyImpl
             joystick.joystickEvent += Joystick_joystickEvent;
 
             sensorsController = new SensorsControllerPlucky(hardwareBrick, loopTimeMs);
-            sensorsController.InitSensors(cts);
+            await sensorsController.InitSensors(cts);
 
             InitDrive();
 
-            behaviorFactory = new BehaviorFactory(dispatcher, driveGeometry, speaker);
+            behaviorFactory = new BehaviorFactory(subsumptionTaskDispatcher, driveGeometry, speaker);
 
             // we can set behavior combo now, or allow ControlDeviceCommand to set it later.
             //behaviorFactory.produce(BehaviorCompositionType.JoystickAndStop);
@@ -126,9 +128,13 @@ namespace slg.RobotPluckyImpl
             robotState = new RobotState();
             robotPose = new RobotPose();
 
+            robotState.powerLevelPercent = 20;  // can be changed any time. Used by behaviors.
+
             robotPose.geoPosition.moveTo(lng, lat, elev);   // will be set to GPS coordinates, if available
             robotPose.direction.heading = headingDegrees;   // will be set to Compass Heading, if available
             robotPose.resetXY();
+
+            robotSlam = new RobotSLAM();
 
             await InitComm(cts);     // may throw exceptions
 
@@ -217,18 +223,13 @@ namespace slg.RobotPluckyImpl
 
             this.odometry = hardwareBrick.produceOdometry(ODOMETRY_SAMPLING_INTERVAL_MS);
 
-            this.odometry.OdometryChanged += ArduinoBrickOdometryChanged;
+            this.odometry.OdometryChanged += ((SensorsControllerPlucky)sensorsController).ArduinoBrickOdometryChanged;
 
             driveController.hardwareBrickOdometry = odometry;
             driveGeometry = (IDifferentialDrive)driveController;
 
             driveController.Init();
             driveController.Enabled = true;
-        }
-
-        private void ArduinoBrickOdometryChanged(RobotAbstraction.IHardwareComponent sender)
-        {
-            IOdometry odom = (IOdometry)sender;
         }
 
         /// <summary>
@@ -240,7 +241,7 @@ namespace slg.RobotPluckyImpl
             {
                 isClosing = true;
 
-                joystick.joystickEvent -= Joystick_joystickEvent;
+                //joystick.joystickEvent -= Joystick_joystickEvent;
 
                 // first close all higher levels (behaviors), while lower levels are still operational:
                 CloseRuntime();
@@ -249,10 +250,12 @@ namespace slg.RobotPluckyImpl
 
                 // we can now close lower levels which we created. Communication to the board is still open:
                 sensorsController.Close();
-                Task.Factory.StartNew(driveController.Close);
+                driveController.Close();
+                //Task.Factory.StartNew(driveController.Close);   // sets PWM to 0
+                //Task.Delay(2000).Wait();
 
                 // wait a bit (pumping events) and stop communication with the Hardware Brick (i.e. Element board):
-                CloseCommunication();
+                //CloseCommunication().Wait();
 
                 hardwareBrick.Close();
             }
@@ -334,11 +337,13 @@ namespace slg.RobotPluckyImpl
 
                     ComputeGoal();
 
-                    behaviorFactory.produce(BehaviorCompositionType.CruiseAndStop);
+                    //behaviorFactory.produce(BehaviorCompositionType.CruiseAndStop);
+                    behaviorFactory.produce(BehaviorCompositionType.ChaseColorBlob);
                     //behaviorFactory.produce(BehaviorCompositionType.AroundTheBlock);
                     isDispatcherCommand = false;    // no need for further command processing
                     //speaker.Speak("Around The Block");
-                    speaker.Speak("Cruise control");
+                    //speaker.Speak("Cruise control");
+                    speaker.Speak("Chase color");
                 }
 
                 // buttons 7 and 8 on RamblePad2 reserved for throttle up/down control.
@@ -349,7 +354,7 @@ namespace slg.RobotPluckyImpl
             if (isDispatcherCommand)
             {
                 // dispatcher will be forwarding command like "speed" to behaviors
-                dispatcher.ControlDeviceCommand(command);
+                subsumptionTaskDispatcher.ControlDeviceCommand(command);
             }
         }
 
@@ -399,10 +404,11 @@ namespace slg.RobotPluckyImpl
                 robotPose = this.robotPose
             };
 
-            EvaluatePoseAndState(behaviorData);
+            // use sensor data to update robotPose:
+            robotSlam.EvaluatePoseAndState(behaviorData, driveController);
 
             // populate all behaviors with current behaviorData:
-            foreach (ISubsumptionTask task in dispatcher.Tasks)
+            foreach (ISubsumptionTask task in subsumptionTaskDispatcher.Tasks)
             {
                 BehaviorBase behavior = task as BehaviorBase;
 
@@ -412,7 +418,7 @@ namespace slg.RobotPluckyImpl
                 }
             }
 
-            dispatcher.Process();     // calls behaviors, which take sensor outputs, and may compute drive inputs
+            subsumptionTaskDispatcher.Process();     // calls behaviors, which take sensor outputs, and may compute drive inputs
 
             // look at ActiveTasksCount - it is an indicator of behaviors completed or removed. Zero count means we may need new behaviors combo.
             MonitorDispatcherActivity();
@@ -447,7 +453,7 @@ namespace slg.RobotPluckyImpl
         private void MonitorDispatcherActivity()
         {
             // ActiveTasksCount is indicator of behaviors completed or removed. Zero count means we may need new behaviors combo.
-            int dispatcherActiveTasksCount = dispatcher.ActiveTasksCount;
+            int dispatcherActiveTasksCount = subsumptionTaskDispatcher.ActiveTasksCount;
 
             if (dispatcherActiveTasksCount != lastActiveTasksCount)
             {
@@ -455,7 +461,7 @@ namespace slg.RobotPluckyImpl
 
                 if (dispatcherActiveTasksCount == 0)
                 {
-                    driveController.Stop(); // ensure the robot is stopped when all behaviors have exited
+                    this.SafePose(); // ensure the robot is stopped when all behaviors have exited
                     speaker.Speak("active tasks count zero");
                 }
                 else if (lastActiveTasksCount <= 0)
@@ -470,7 +476,7 @@ namespace slg.RobotPluckyImpl
             string gbn = coordinatorData.GrabbingBehaviorName;
             if (!string.IsNullOrWhiteSpace(gbn))
             {
-                ISubsumptionTask grabber = (from b in dispatcher.Tasks where b.name == gbn select b).FirstOrDefault();
+                ISubsumptionTask grabber = (from b in subsumptionTaskDispatcher.Tasks where b.name == gbn select b).FirstOrDefault();
 
                 if (grabber != null)
                 {
@@ -482,17 +488,6 @@ namespace slg.RobotPluckyImpl
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// takes current state/pose, new sensors data and evaluates new state and pose
-        /// </summary>
-        /// <param name="behaviorData"></param>
-        private void EvaluatePoseAndState(IBehaviorData behaviorData)
-        {
-            long[] encoderTicks = new long[] { behaviorData.sensorsData.WheelEncoderLeftTicks, behaviorData.sensorsData.WheelEncoderRightTicks };
-
-            driveController.OdometryCompute(behaviorData.robotPose, encoderTicks);
         }
 
         #endregion // Main Loop processing

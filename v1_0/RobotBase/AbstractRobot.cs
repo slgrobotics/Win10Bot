@@ -54,18 +54,18 @@ namespace slg.RobotBase
 
         public AbstractRobot()
         {
-            dispatcher = new SubsumptionTaskDispatcher();
+            subsumptionTaskDispatcher = new SubsumptionTaskDispatcher();
         }
 
         public abstract void Close();
 
         public void CloseRuntime()
         {
-            dispatcher.Close();
+            subsumptionTaskDispatcher.Close();
 
-            while (dispatcher.ActiveTasksCount > 0)
+            while (subsumptionTaskDispatcher.ActiveTasksCount > 0)
             {
-                dispatcher.Process();
+                subsumptionTaskDispatcher.Process();
             }
 
             Debug.WriteLine("AbstractRobot: Close() : all dispatcher tasks closed");
@@ -78,7 +78,7 @@ namespace slg.RobotBase
         #region Real-time processing methods
 
         // runtime:
-        protected SubsumptionTaskDispatcher dispatcher;
+        protected SubsumptionTaskDispatcher subsumptionTaskDispatcher;
 
         /// <summary>
         /// called often, must return promptly

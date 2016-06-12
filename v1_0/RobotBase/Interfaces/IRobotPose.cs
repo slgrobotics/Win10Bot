@@ -16,7 +16,7 @@
  */
 
 
-using slg.Mapping;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Interfaces
 {

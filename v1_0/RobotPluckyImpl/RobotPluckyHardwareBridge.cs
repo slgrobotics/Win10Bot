@@ -27,7 +27,7 @@ using slg.RobotBase;
 using slg.RobotAbstraction;
 using slg.RobotAbstraction.Drive;
 using slg.RobotAbstraction.Events;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 
 // specific Hardware Brick (i.e. Arduino based board, see PluckyWheels sketch):
 using slg.ArduinoRobotHardware;
@@ -95,16 +95,22 @@ namespace slg.RobotPluckyImpl
             hardwareBrick.PumpEvents();
         }
 
+        private async Task WaitPumping(int ms)
+        {
+            int j = ms / 20;
+            for (int i = 0; i < 20; i++)
+            {
+                PumpEvents();
+                await Task.Delay(20);
+            }
+        }
+
         /// <summary>
         /// call it after all finalizing sensors and drive commands have been completed.
         /// </summary>
         public async Task CloseCommunication()
         {
-            for (int i = 0; i < 20; i++)
-            {
-                hardwareBrick.PumpEvents();
-                await Task.Delay(20);
-            }
+            await WaitPumping(3000);
             await hardwareBrick.StopCommunication();
             isBrickComStarted = false;
         }

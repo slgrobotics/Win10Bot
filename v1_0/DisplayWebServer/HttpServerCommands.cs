@@ -143,6 +143,11 @@ namespace slg.DisplayWebServer
         {
             string ret = robot == null || robot.robotState == null ? "no data" : robot.robotState.ToString();
 
+            if(robot != null && robot.robotPose != null)
+            {
+                ret += "    " + robot.robotPose.ToString();
+            }
+
             return wrapP(ret);
         }
 

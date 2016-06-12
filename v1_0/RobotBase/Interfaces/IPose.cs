@@ -16,7 +16,7 @@
  */
 
 
-using slg.Mapping;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Interfaces
 {
@@ -28,17 +28,17 @@ namespace slg.RobotBase.Interfaces
         /// <summary>
         /// meters
         /// </summary>
-        double X { get; set; }
+        double XMeters { get; set; }
 
         /// <summary>
         /// meters
         /// </summary>
-        double Y { get; set; }
+        double YMeters { get; set; }
 
         /// <summary>
-        /// degrees
+        /// Radians, positive towards left turn
         /// </summary>
-        double Theta { get; set; }
+        double ThetaRadians { get; set; }
 
         void translate(double dXMeters, double dYMeters);
 

@@ -24,8 +24,8 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
 using slg.LibCommunication;
+using slg.LibRobotExceptions;
 using slg.RobotAbstraction;
-using slg.RobotExceptions;
 
 namespace slg.ArduinoRobotHardware
 {

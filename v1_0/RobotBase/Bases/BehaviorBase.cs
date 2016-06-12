@@ -221,7 +221,7 @@ namespace slg.RobotBase.Bases
         /// </summary>
         /// <param name="speed">-100...100</param>
         /// <param name="turn">-100...100, positive - right</param>
-        protected void setSpeedAndTurn(double speed = 0.0d, double turn = 0.0d)
+        protected void setSpeedAndTurn(double speed = 0.0d, double turn = 0.0d, bool applyPowerFactor = true)
         {
             if (driveGeometry == null)
             {
@@ -231,8 +231,10 @@ namespace slg.RobotBase.Bases
             }
             else
             {
-                requestedVelocity = ToVelocity(speed);
-                requestedOmega = ToOmega(turn);
+                double powerFactor = applyPowerFactor ? (behaviorData.robotState == null ? 0.0d : behaviorData.robotState.powerLevelPercent / 100.0d) : 1.0d;
+
+                requestedVelocity = ToVelocity(speed * powerFactor);
+                requestedOmega = ToOmega(turn * powerFactor);
             }
 
             setVelocityAndOmega(requestedVelocity, requestedOmega);

@@ -29,7 +29,7 @@ using cmRobot.Element.Ids;
 
 using cmRobot.Element.Sensors;
 
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 using slg.RobotAbstraction;
 using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Events;
@@ -390,6 +390,11 @@ namespace cmRobot.Element
         }
 
         public IOdometry produceOdometry(int updateFrequency)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAhrs produceAhrs(int i2CAddress, int updateFrequency, double headingChangedThreshold)
         {
             throw new NotImplementedException();
         }

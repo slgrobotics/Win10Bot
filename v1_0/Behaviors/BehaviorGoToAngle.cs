@@ -23,9 +23,9 @@ using System.Threading;
 using System.Diagnostics;
 
 using slg.LibRuntime;
+using slg.LibRobotMath;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
-using slg.RobotMath;
 
 namespace slg.Behaviors
 {
@@ -74,15 +74,16 @@ namespace slg.Behaviors
             {
                 double? gbd = goalBearingDegrees;
 
-                if (!gbd.HasValue)
+                if (!gbd.HasValue || behaviorData.robotPose.direction == null || !behaviorData.robotPose.direction.heading.HasValue)
                 {
                     // no goal set in RobotState. Stop till it appears. 
                     setSpeedAndTurn(0.0d, 0.0d);
-                    behaviorData.robotState.goalBearingRelativeDegrees = null;
+                    goalBearingDegrees = null;      // set it in robot state
                 }
                 else if (!GrabByOther())
                 {
-                    double heading = behaviorData.sensorsData.CompassHeadingDegrees;    // robot's heading by compass
+                    //double heading = behaviorData.sensorsData.CompassHeadingDegrees;  // robot's heading by compass
+                    double heading = behaviorData.robotPose.direction.heading.Value;    // robot's heading by SLAM
 
                     double desiredTurnDegrees = DirectionMath.to180(heading - (double)gbd);
 

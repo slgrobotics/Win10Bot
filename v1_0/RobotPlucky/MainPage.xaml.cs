@@ -45,10 +45,11 @@ using Windows.Devices.Enumeration;
 using slg.RobotPluckyImpl;
 using slg.RobotBase.Interfaces;
 using slg.RobotBase.Data;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 using slg.ControlDevices;
 using slg.Display;
 using slg.DisplayWebServer;
+using Windows.Web.Http.Filters;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -94,6 +95,8 @@ namespace RobotPlucky
             speakerImpl = new Speaker(media);
             joystick = new GenericJoystick();
             InitWebServer(serialPorts);
+
+            Speak("Ready");
         }
 
         private void InitWebServer(List<SerialPortTuple> serialPorts)
@@ -108,15 +111,36 @@ namespace RobotPlucky
                     while(true)
                     {
                         await Task.Delay(5000);
-                        using (HttpClient client = new HttpClient())
+
+                        // see https://blogs.windows.com/buildingapps/2015/11/23/demystifying-httpclient-apis-in-the-universal-windows-platform/
+
+                        // cache is controlled by HTTP header, but we can also set it here:
+                        //var myFilter = new HttpBaseProtocolFilter();
+                        //myFilter.CacheControl.ReadBehavior = HttpCacheReadBehavior.MostRecent;
+
+                        //using (HttpClient client = new HttpClient(myFilter))    // keep-alive by default
+                        using (HttpClient client = new HttpClient())    // keep-alive by default
                         {
                             try
                             {
                                 // inside the same process isolation does not block access. Other processes on the same computer are blocked.
-                                // use another computer to hit this URL in the browser: 
-                                string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
-                                //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/DateTime"));
-                                Debug.WriteLine("HttpClient: got response: " + response); 
+                                // use another computer to hit this URL in the browser. 
+
+                                while (true)    // using keep-alive
+                                {
+                                    await Task.Delay(5000);
+
+                                    // alternative way:
+                                    //Send the GET request
+                                    //HttpResponseMessage httpResponse = await client.GetAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
+                                    //httpResponse.EnsureSuccessStatusCode();
+                                    //string response = await httpResponse.Content.ReadAsStringAsync();
+
+
+                                    string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
+                                    //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/DateTime"));
+                                    Debug.WriteLine("HttpClient: got response: " + response);
+                                }
                             }
                             catch (Exception exc)
                             {
@@ -453,6 +477,16 @@ namespace RobotPlucky
         {
             try
             {
+                if (isWorkerRunning && plucky != null && !plucky.isCommError)
+                {
+                    //plucky.Dispose();
+                    Task.Factory.StartNew(plucky.Dispose).Wait();
+                    //await Task.Factory.StartNew(plucky.Dispose);
+
+                    //await Task.Delay(2000); // let PWM commands reach motors
+                    Task.Delay(4000).Wait(); // let PWM commands reach motors
+                }
+
                 IsDeviceOpen = false;
                 StopTickers().Wait();   // triggers tokenSource.Cancel()
             }

@@ -147,33 +147,21 @@
       <Project>{335df153-a33e-4628-b9e3-03d30863cca6}</Project>
       <Name>Display</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Exceptions\Exceptions.csproj">
+    <ProjectReference Include="..\LibRobotExceptions\LibRobotExceptions.csproj">
       <Project>{0762420c-0870-4a23-be4e-0d7ce21dd451}</Project>
-      <Name>Exceptions</Name>
+      <Name>LibRobotExceptions</Name>
     </ProjectReference>
     <ProjectReference Include="..\LibRuntime\LibRuntime.csproj">
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Mapping\Mapping.csproj">
-      <Project>{d04360b2-b477-494d-b046-f681d4a51366}</Project>
-      <Name>Mapping</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RobotBase\RobotBase.csproj">
       <Project>{63d901ea-57a0-431b-a6ff-bea3850abefe}</Project>
       <Name>RobotBase</Name>
     </ProjectReference>
-    <ProjectReference Include="..\RobotMath\RobotMath.csproj">
-      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
-      <Name>RobotMath</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RobotPluckyImpl\RobotPluckyImpl.csproj">
       <Project>{94f85ffc-35f7-4007-b06a-52e041ad9e12}</Project>
       <Name>RobotPluckyImpl</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Sensors\Sensors.csproj">
-      <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
-      <Name>Sensors</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

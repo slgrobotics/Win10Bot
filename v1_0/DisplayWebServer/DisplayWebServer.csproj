@@ -162,13 +162,13 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LibRobotMath\LibRobotMath.csproj">
+      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
+      <Name>LibRobotMath</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RobotBase\RobotBase.csproj">
       <Project>{63d901ea-57a0-431b-a6ff-bea3850abefe}</Project>
       <Name>RobotBase</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RobotMath\RobotMath.csproj">
-      <Project>{b7c6ebc7-9e5f-4d59-9e18-eb4fef97043b}</Project>
-      <Name>RobotMath</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

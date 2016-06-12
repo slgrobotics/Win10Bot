@@ -15,7 +15,7 @@
  * although doing so, donating and contributing is always appreciated
  */
 
-using slg.RobotMath;
+using slg.LibRobotMath;
 
 namespace slg.RobotBase.Interfaces
 {

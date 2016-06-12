@@ -33,17 +33,17 @@ namespace slg.Behaviors
     /// non-grabbing, will set FiredOn when triggered
     /// will issue EnablingRequest within the "Escape" subset
     /// </summary>
-    public class BehaviorStop : BehaviorBase
+    public abstract class BehaviorStop : BehaviorBase
     {
         public double tresholdStopMeters = 0.4d;        // at velocity 0.2 m/s
         public double tresholdIrStopMeters = 0.25d;     // front sensor is 10..80 cm
 
-        private string escapeRecommendation;
+        protected string escapeRecommendation { get; set; }
 
         public BehaviorStop()
             : base()
         {
-            BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd, out escapeRecommendation); };
+            BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd); };
         }
 
         #region Behavior logic
@@ -92,72 +92,8 @@ namespace slg.Behaviors
         /// determines if an obstacle is too close and comes up with an escape recommendation
         /// </summary>
         /// <param name="behaviorData"></param>
-        /// <param name="escapeRecommendation">output</param>
         /// <returns></returns>
-        private bool TooClose(IBehaviorData behaviorData, out string escapeRecommendation)
-        {
-            escapeRecommendation = string.Empty;
-
-            ISensorsData sensorsData = behaviorData.sensorsData;
-            double velocity = behaviorData.driveInputs.velocity;    // behaviorData.driveInputs guaranteed not null
-
-            double adjustedTresholdStopMeters = Math.Max(Math.Min(Math.Abs(tresholdStopMeters * velocity / 0.2d), 0.4d), 0.15d); // limit 0.15 ... 0.4 meters depending on velocity
-
-            if (velocity > 0.0d && (sensorsData.IrFrontMeters <= tresholdIrStopMeters || sensorsData.RangerFrontLeftMeters <= adjustedTresholdStopMeters || sensorsData.RangerFrontRightMeters <= adjustedTresholdStopMeters))
-            {
-                bool leftSideFree = sensorsData.RangerFrontLeftMeters > adjustedTresholdStopMeters && sensorsData.IrLeftMeters > adjustedTresholdStopMeters;      // IR left and right - 10..80 cm
-                bool rightSideFree = sensorsData.RangerFrontRightMeters > adjustedTresholdStopMeters && sensorsData.IrRightMeters > adjustedTresholdStopMeters;
-
-                if (!leftSideFree)
-                {
-                    escapeRecommendation = "EscapeRight";
-                }
-                else if (!rightSideFree)
-                {
-                    escapeRecommendation = "EscapeLeft";
-                }
-                else
-                {
-                    escapeRecommendation = "Escape";    // random turn
-                }
-
-                return true;
-            }
-
-            if (velocity < 0.0d && (sensorsData.IrRearMeters < adjustedTresholdStopMeters))
-            {
-                escapeRecommendation = "EscapeForward";
-                return true;
-            }
-
-            //if (velocity == 0.0d && behaviorData.driveInputs.omega == 0.0d)
-            //{
-            //    bool leftSideFree = sensorsData.IrLeftMeters > adjustedTresholdStopMeters;
-            //    bool rightSideFree = sensorsData.IrRightMeters > adjustedTresholdStopMeters;
-            //    bool rearFree = sensorsData.IrRearMeters > adjustedTresholdStopMeters;
-
-            //    if (leftSideFree)
-            //    {
-            //        escapeRecommendation = "EscapeLeftTurn";
-            //    }
-            //    else if (rightSideFree)
-            //    {
-            //        escapeRecommendation = "EscapeRightTurn";
-            //    }
-            //    else if (rearFree)
-            //    {
-            //        escapeRecommendation = "EscapeFullTurn";
-            //    }
-            //    else
-            //    {
-            //        escapeRecommendation = "EscapeNone";
-            //    }
-
-            //    return true;
-            //}
-
-            return false;
-        }
+        protected abstract bool TooClose(IBehaviorData behaviorData);
 
         /// <summary>
         /// finish all operations nicely

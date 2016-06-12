@@ -28,8 +28,8 @@ using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotBase;
 using slg.RobotBase.Interfaces;
-using slg.RobotMath;
-using slg.Sensors;
+using slg.LibRobotMath;
+using slg.LibSensors;
 
 namespace slg.RobotShortyImpl
 {
@@ -108,25 +108,25 @@ namespace slg.RobotShortyImpl
             //       Sensors must carefully adjust their demands by setting UpdateFrequency and Enabled properties.
 
             // *********************** infrared rangers:
-            SensorPose spIrLeft = new SensorPose() { X = 0.0d, Y = 0.1d, Theta = Math.PI / 2.0d };
+            SensorPose spIrLeft = new SensorPose() { XMeters = 0.0d, YMeters = 0.1d, ThetaRadians = Math.PI / 2.0d };
             RangerIrLeft = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorIR10_80, "IrLeft", spIrLeft,
                                                                                         hardwareBrick, AnalogPinId.A1, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerIrLeft.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
             RangerSensors.Add(RangerIrLeft.Name, RangerIrLeft);
 
-            SensorPose spIrRight = new SensorPose() { X = 0.0d, Y = -0.1d, Theta = -Math.PI / 2.0d };
+            SensorPose spIrRight = new SensorPose() { XMeters = 0.0d, YMeters = -0.1d, ThetaRadians = -Math.PI / 2.0d };
             RangerIrRight = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorIR10_80, "IrRight", spIrRight,
                                                                                         hardwareBrick, AnalogPinId.A0, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerIrRight.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
             RangerSensors.Add(RangerIrRight.Name, RangerIrRight);
 
-            SensorPose spIrFront = new SensorPose() { X = 0.1d, Y = 0.0d, Theta = 0.0d };
+            SensorPose spIrFront = new SensorPose() { XMeters = 0.1d, YMeters = 0.0d, ThetaRadians = 0.0d };
             RangerIrFront = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorIR10_80, "IrFront", spIrFront,
                                                                                         hardwareBrick, AnalogPinId.A3, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerIrFront.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
             RangerSensors.Add(RangerIrFront.Name, RangerIrFront);
 
-            SensorPose spIrRear = new SensorPose() { X = -0.1d, Y = 0.0d, Theta = Math.PI };
+            SensorPose spIrRear = new SensorPose() { XMeters = -0.1d, YMeters = 0.0d, ThetaRadians = Math.PI };
             RangerIrRear = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorIR10_80, "IrRear", spIrRear,
                                                                                         hardwareBrick, AnalogPinId.A2, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerIrRear.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
@@ -134,13 +134,13 @@ namespace slg.RobotShortyImpl
 
 
             // *********************** ultrasonic rangers:
-            SensorPose spSonarLeft = new SensorPose() { X = 0.1d, Y = 0.05d, Theta = Math.PI / 6.0d };
+            SensorPose spSonarLeft = new SensorPose() { XMeters = 0.1d, YMeters = 0.05d, ThetaRadians = Math.PI / 6.0d };
             RangerSonarLeft = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorSonar, "SonarLeft", spSonarLeft,
                                                                                         hardwareBrick, GpioPinId.Pin4, GpioPinId.Pin5, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerSonarLeft.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
             RangerSensors.Add(RangerSonarLeft.Name, RangerSonarLeft);
 
-            SensorPose spSonarRight = new SensorPose() { X = 0.1d, Y = -0.05d, Theta = -Math.PI / 6.0d };
+            SensorPose spSonarRight = new SensorPose() { XMeters = 0.1d, YMeters = -0.05d, ThetaRadians = -Math.PI / 6.0d };
             RangerSonarRight = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorSonar, "SonarRight", spSonarRight,
                                                                                         hardwareBrick, GpioPinId.Pin2, GpioPinId.Pin3, rangersSamplingIntervalMs, rangersSensitivityThresholdCm);
             RangerSonarRight.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);

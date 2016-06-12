@@ -30,8 +30,9 @@ using slg.RobotAbstraction.Ids;
 using slg.RobotAbstraction.Events;
 using slg.RobotAbstraction.Sensors;
 using slg.RobotAbstraction.Drive;
-using slg.Sensors;
-using slg.RobotMath;
+using slg.LibSensors;
+using slg.LibRobotMath;
+using slg.LibMapping;
 
 namespace slg.RobotPluckyImpl
 {
@@ -53,8 +54,8 @@ namespace slg.RobotPluckyImpl
         //private const int encodersSamplingIntervalMs = 100;  - we use mainLoopCycleMs instead
         private const int encodersSensitivityThresholdTicks = 1;    // report every tick for precision. We don't increase traffic by doing that. 
 
-        //private const int CompassSamplingIntervalMs = 100;
-        //private const short CompassSensitivityThreshold = 1;    // in units 1..255
+        private const int AhrsSamplingIntervalMs = 100;
+        private const short AhrsSensitivityThreshold = 1;    // in units -180...+180
 
         private const int batterySamplingIntervalMs = 2000; // "frequency" in milliseconds. 
         private const double batterySensitivityThresholdVolts = 0.0d; // report every reading.
@@ -72,9 +73,7 @@ namespace slg.RobotPluckyImpl
         // ranger sensors - Parking Sonar:
         private IRangerSensor ParkingSonar;
 
-        //private ICompassCMPS03 Compass;
-
-        //private IAnalogSensor Ahrs;
+        private IAhrs Ahrs;
 
         private RPiCamera RPiCameraSensor;
 
@@ -104,7 +103,7 @@ namespace slg.RobotPluckyImpl
             //       Sensors must carefully adjust their demands by setting UpdateFrequency and Enabled properties.
 
             // *********************** Parking Sonar:
-            SensorPose spParkingSonar = new SensorPose() { X = 0.0d, Y = 0.0d, Theta = 0.0d };
+            SensorPose spParkingSonar = new SensorPose() { XMeters = 0.0d, YMeters = 0.0d, ThetaRadians = 0.0d };
             ParkingSonar = RangerSensorFactory.produceRangerSensor(RangerSensorFactoryProducts.RangerSensorParkingSonar, "ParkingSonar", spParkingSonar,
                                                                                         hardwareBrick, rangersSamplingIntervalMs);
             ParkingSonar.distanceChangedEvent += new EventHandler<RangerSensorEventArgs>(RangerDistanceChangedEvent);
@@ -114,12 +113,8 @@ namespace slg.RobotPluckyImpl
             encoderLeft = CreateWheelEncoder(hardwareBrick, WheelEncoderId.Encoder2, (int)mainLoopCycleMs, encodersSensitivityThresholdTicks);
             encoderRight = CreateWheelEncoder(hardwareBrick, WheelEncoderId.Encoder1, (int)mainLoopCycleMs, encodersSensitivityThresholdTicks);
 
-            //Compass = hardwareBrick.produceCompassCMPS03(0x60, CompassSamplingIntervalMs, CompassSensitivityThreshold);
-            //Compass.HeadingChanged += new HardwareComponentEventHandler(Compass_HeadingChanged);
-
-            // arduino based AHRS - PWM DAC to pin 4:
-            //Ahrs = hardwareBrick.produceAnalogSensor(AnalogPinId.A4, CompassSamplingIntervalMs, CompassSensitivityThreshold);
-            //Ahrs.AnalogValueChanged += new HardwareComponentEventHandler(Ahrs_ValueChanged);
+            Ahrs = hardwareBrick.produceAhrs(0x00, AhrsSamplingIntervalMs, AhrsSensitivityThreshold);
+            Ahrs.ValuesChanged += new HardwareComponentEventHandler(Ahrs_ValuesChanged);
 
             await RPiCameraSensor.Open(cts);
             RPiCameraSensor.TargetingCameraTargetsChanged += RPiCameraSensor_TargetsChanged;
@@ -130,11 +125,8 @@ namespace slg.RobotPluckyImpl
 
             SonarsEnabled = true;
             EncodersEnabled = true;
-
-            //CompassEnabled = true;    // compass no good inside concrete buildings, use gyro instead
-            //CompassEnabled = false;
-            //Ahrs.Enabled = true;
-            RPiCameraSensor.Enabled = true;
+            CompassEnabled = true;
+            RPiCameraEnabled = true;
 
             currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
         }
@@ -147,8 +139,12 @@ namespace slg.RobotPluckyImpl
             RPiCameraSensor.Close();
         }
 
-        void RPiCameraSensor_TargetsChanged(object sender, TargetingCameraEventArgs args)
+        private void RPiCameraSensor_TargetsChanged(object sender, TargetingCameraEventArgs args)
         {
+            // Raspberry Pi based camera sensor works under Wheezy and uses OpenCV and Python to process
+            // 240x320 frames and select areas with yellow color. Bearing, inclination and size of blobs is then
+            // reported over HTTP to RPiCamera (derived from HttpServerBase). Frequency is around 10 FPS.
+
             //Debug.WriteLine("RPi Camera Event: " + args);
 
             // On Raspberry Pi:
@@ -170,7 +166,7 @@ namespace slg.RobotPluckyImpl
 
             if (args.width * args.height > 500) // only large objects count
             {
-                int bearing = GeneralMath.map(args.x, 0, 320, -45, 45);
+                int bearing = GeneralMath.map(args.x, 0, 320, 45, -45);
                 int inclination = GeneralMath.map(args.y, 0, 200, 30, -30);
 
                 //Debug.WriteLine("RPi: bearing=" + bearing + "  inclination: " + inclination);
@@ -190,65 +186,31 @@ namespace slg.RobotPluckyImpl
             }
         }
 
-        //void Ahrs_ValueChanged(IHardwareComponent sender)
-        //{
-        //    IAnalogSensor a = (IAnalogSensor)sender;
-        //    int val = a.AnalogValue; // 0v = 0, 5V = 470 approx
+        private void Ahrs_ValuesChanged(IHardwareComponent sender)
+        {
+            // AHRS is based on Arduino Motion Plug sketch, a pro-mini is connected to Plucky Wheels using I2C.
 
-        //    /*
-        //     Yaw    PWM     val
-        //     --------------------
+            IAhrs ahrs = (IAhrs)sender;
+            double heading = Direction.to360(ahrs.Yaw);
 
-        //     */
+            //Debug.WriteLine("Compass: heading=" + heading);
 
-        //    double heading;
-        //    if (val > 507)
-        //    {
-        //        heading = GeneralMath.map(val, 508, 1024, 0, 180);
-        //    }
-        //    else
-        //    {
-        //        heading = GeneralMath.map(val, 0, 507, 180, 360);
-        //    }
+            lock (currentSensorsDataLock)
+            {
+                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                sensorsData.CompassHeadingDegrees = heading;
+                //Debug.WriteLine(sensorsData.ToString());
 
-        //    //Debug.WriteLine("Ahrs: Value=" + val + "  heading: " + heading);
-
-        //    lock (currentSensorsDataLock)
-        //    {
-        //        SensorsData sensorsData = new SensorsData(this.currentSensorsData);
-        //        sensorsData.CompassHeadingDegrees = heading;
-        //        //Debug.WriteLine(sensorsData.ToString());
-
-        //        this.currentSensorsData = sensorsData;
-        //    }
-        //}
-
-        //void Compass_HeadingChanged(IHardwareComponent sender)
-        //{
-        //    // The cmps03 command queries a Devantech CMPS03 Electronic compass module attached to the Serializer’s I2C port.
-        //    // The current heading is returned in Binary Radians, or BRADS. To convert BRADS to DEGREES, multiply BRADS by 360/255 (~1.41).
-
-        //    ICompassCMPS03 cmps = (ICompassCMPS03)sender;
-        //    double heading = Math.Round(cmps.Heading * 360.0d / 255.0d, 1);
-
-        //    Debug.WriteLine("Compass: heading=" + heading);
-
-        //    lock (currentSensorsDataLock)
-        //    {
-        //        SensorsData sensorsData = new SensorsData(this.currentSensorsData);
-        //        sensorsData.CompassHeadingDegrees = heading;
-        //        //Debug.WriteLine(sensorsData.ToString());
-
-        //        this.currentSensorsData = sensorsData;
-        //    }
-        //}
+                this.currentSensorsData = sensorsData;
+            }
+        }
 
         // called every 50ms from the main loop
         public void Process()
         {
         }
 
-        void RangerDistanceChangedEvent(object sender, RangerSensorEventArgs e)
+        private void RangerDistanceChangedEvent(object sender, RangerSensorEventArgs e)
         {
             //Debug.WriteLine("Ranger: " + e.Name + "         RangeMeters=" + e.RangeMeters);
 
@@ -284,7 +246,9 @@ namespace slg.RobotPluckyImpl
 
         public bool SonarsEnabled { set { ParkingSonar.Enabled = value; } }
 
-        //public bool CompassEnabled    { set { Compass.Enabled = value; } }
+        public bool CompassEnabled    { set { Ahrs.Enabled = value; } }
+
+        public bool RPiCameraEnabled  { set { RPiCameraSensor.Enabled = value; } }
 
         #region Battery Voltage related
 
@@ -308,7 +272,7 @@ namespace slg.RobotPluckyImpl
             return bv;
         }
 
-        void batteryVoltage_ValueChanged(IHardwareComponent sender)
+        private void batteryVoltage_ValueChanged(IHardwareComponent sender)
         {
             lock (currentSensorsDataLock)
             {
@@ -372,7 +336,7 @@ namespace slg.RobotPluckyImpl
             return encoder;
         }
 
-        void encoder_CountChanged(IHardwareComponent sender)
+        private void encoder_CountChanged(IHardwareComponent sender)
         {
             lock (currentSensorsDataLock)
             {
@@ -390,6 +354,27 @@ namespace slg.RobotPluckyImpl
                 {
                     sensorsData.WheelEncoderRightTicks = encoder.Count;
                 }
+
+                //Debug.WriteLine(sensorsData.ToString());
+
+                this.currentSensorsData = sensorsData;
+            }
+        }
+
+        internal void ArduinoBrickOdometryChanged(RobotAbstraction.IHardwareComponent sender)
+        {
+            IOdometry odom = (IOdometry)sender;
+
+            //odom.XMeters;
+            //odom.YMeters;
+            //odom.ThetaRadians;
+
+            lock (currentSensorsDataLock)
+            {
+                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+
+                sensorsData.WheelEncoderLeftTicks = odom.LDistanceTicks;
+                sensorsData.WheelEncoderRightTicks = odom.RDistanceTicks;
 
                 //Debug.WriteLine(sensorsData.ToString());
 

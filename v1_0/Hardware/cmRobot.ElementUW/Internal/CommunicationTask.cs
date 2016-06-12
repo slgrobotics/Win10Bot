@@ -13,7 +13,7 @@ using Windows.Devices.Enumeration;
 
 using slg.RobotAbstraction;
 using slg.LibCommunication;
-using slg.RobotExceptions;
+using slg.LibRobotExceptions;
 
 // see https://ms-iot.github.io/content/en-US/win10/samples/SerialSample.htm
 // see https://github.com/dotMorten/NmeaParser/wiki/Using-in-a-Windows-Universal-App-(SerialPort)

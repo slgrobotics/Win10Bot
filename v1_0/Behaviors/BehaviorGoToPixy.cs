@@ -39,8 +39,11 @@ namespace slg.Behaviors
             set { 
                 behaviorData.robotState.goalBearingRelativeDegrees = value;
                 behaviorData.robotState.setGoalBearingByRelativeBearing(behaviorData.robotPose.direction.heading);
+                //behaviorData.robotState.setGoalBearingByRelativeBearing(behaviorData.sensorsData.CompassHeadingDegrees);
             }
         }
+
+        private double? pbd = null; // saved pixyBearingDegrees
 
         public double? pixyBearingDegrees
         {
@@ -70,7 +73,8 @@ namespace slg.Behaviors
         {
             BehaviorActivateCondition = bd =>
             {
-                return pixyBearingDegrees != null;  // have colored object in Pixy Camera view
+                pbd = pixyBearingDegrees;   // save it for the loop
+                return pbd  != null;        // have colored object in Pixy Camera view
             };
 
             BehaviorDeactivateCondition = bd =>
@@ -82,7 +86,7 @@ namespace slg.Behaviors
         #region Behavior logic
 
         /// <summary>
-        /// Computes goalBearingDegrees and sets it to null when goal is reached
+        /// Computes goalBearingDegrees if camera reports a goal and sets it to null when goal is not reported
         /// </summary>
         /// <returns></returns>
         public override IEnumerator<ISubsumptionTask> Execute()
@@ -96,26 +100,35 @@ namespace slg.Behaviors
                     yield return RobotTask.Continue;    // dormant state - no need to calculate
                 }
 
+                // we have pixyBearingDegrees saved in pbd
+
                 if (MustExit || MustTerminate)
                 {
                     break;
                 }
 
-                //speaker.Speak("Go to Pixy " + Math.Round(pixyBearingDegrees.Value, 1));
-                Debug.WriteLine("BehaviorGoToPixy: Go to relative bearing " + Math.Round(pixyBearingDegrees.Value, 1));
+                if(pixyBearingDegrees.HasValue)
+                {
+                    speaker.Speak("Go " + Math.Round(pbd.Value, 1));
+                }
+                //speaker.Speak("Go to Pixy " + Math.Round(pbd.Value, 1));
+                //Debug.WriteLine("BehaviorGoToPixy: Go to relative bearing " + Math.Round(pbd.Value, 1));
 
-                int i = 0;
+                //int i = 0;
                 while (!MustDeactivate && !MustExit && !MustTerminate)
                 {
                     double bearing = pixyBearingDegrees.Value;
-                    goalBearingRelativeDegrees = bearing;
-                    Debug.WriteLine("BehaviorGoToPixy: goalBearingDegrees=" + Math.Round(bearing, 1));
+                    goalBearingRelativeDegrees = bearing;       // update robotState
+
+                    //Debug.WriteLine("BehaviorGoToPixy: goalBearingDegrees=" + Math.Round(bearing, 1));
+                    //speaker.Speak("" + Math.Round(bearing, 1));
 
                     yield return RobotTask.Continue;
                 }
 
                 //speaker.Speak("Lost colored object");
-                Debug.WriteLine("BehaviorGoToPixy: Lost colored object");
+                speaker.Speak("Lost");
+                //Debug.WriteLine("BehaviorGoToPixy: Lost colored object");
             }
 
             FiredOn = false;

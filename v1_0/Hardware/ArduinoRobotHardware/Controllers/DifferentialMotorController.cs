@@ -93,7 +93,7 @@ namespace slg.ArduinoRobotHardware.Controllers
             Start();
         }
 
-        public void Drive()
+        public void DriveMotors()
         {
             //Debug.WriteLine("DifferentialMotorController:Drive()");
         }
@@ -101,6 +101,16 @@ namespace slg.ArduinoRobotHardware.Controllers
         public void Update()
         {
             //Debug.WriteLine("DifferentialMotorController:Update()");
+        }
+
+        public void FeatherMotors()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void BrakeMotors()
+        {
+            throw new NotImplementedException();
         }
 
         protected override async Task roundtrip()

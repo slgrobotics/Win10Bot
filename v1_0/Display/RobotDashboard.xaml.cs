@@ -15,8 +15,8 @@ using Windows.UI.Xaml.Navigation;
 
 using slg.RobotBase.Interfaces;
 //using slg.ControlDevices;
-//using slg.Mapping;
-using slg.RobotMath;
+//using slg.LibMapping;
+using slg.LibRobotMath;
 using System.Diagnostics;
 
 

@@ -21,8 +21,8 @@ using System.Linq;
 using System.Text;
 
 using slg.RobotBase.Interfaces;
-using slg.RobotMath;
-using slg.Mapping;
+using slg.LibRobotMath;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Bases
 {
@@ -42,8 +42,8 @@ namespace slg.RobotBase.Bases
         {
             geoPosition.moveTo(lng, lat, elevMeters);
 
-            X = 0.0d;
-            Y = 0.0d;
+            XMeters = 0.0d;
+            YMeters = 0.0d;
             H = elevMeters;
         }
 
@@ -62,7 +62,7 @@ namespace slg.RobotBase.Bases
 
             set { 
                 direction.heading = Direction.to360(value);
-                Theta = -DirectionMath.toRad(direction.heading.Value);
+                //ThetaRadians = -DirectionMath.toRad(direction.heading.Value);
             }
         }
 
@@ -78,7 +78,9 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return string.Format("{0}   heading: {1} degrees", base.ToString(), Math.Round(Direction.to360fromRad(Theta))) + "   GeoPos: " + geoPosition.ToStringExact() + "   Dir: " + direction;
+            return string.Format("Pose: {0}    Theta: {1} degrees", base.ToString(), Math.Round(Direction.to360fromRad(ThetaRadians)))
+                + "    GeoPos: " + geoPosition.ToStringExact()
+                + "    Dir: " + direction;
         }
     }
 }

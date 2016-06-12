@@ -31,18 +31,28 @@ namespace slg.RobotAbstraction.Drive
     {
         bool Enabled { get; set; }
 
-        /// <summary>
-        /// communicate current properties (speeds) to motors, let them roll
-        /// </summary>
-        void Drive();
-
-        /// <summary>
-        /// query state
-        /// </summary>
-        void Update();
-
         int LeftMotorSpeed { get; set; }
 
         int RightMotorSpeed { get; set; }
+
+        /// <summary>
+        /// communicate current properties (speeds) to motors, let them roll
+        /// </summary>
+        void DriveMotors();
+
+        /// <summary>
+        /// idle (feather) motors disconnecting all power.  
+        /// </summary>
+        void FeatherMotors();
+
+        /// <summary>
+        /// ensire that wheels will not rotate, whether via motors control or applying brakes
+        /// </summary>
+        void BrakeMotors();
+
+        /// <summary>
+        /// force commands send to brick, not waiting for polling interval
+        /// </summary>
+        void Update();
     }
 }

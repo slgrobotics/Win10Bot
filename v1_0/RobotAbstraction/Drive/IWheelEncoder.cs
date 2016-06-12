@@ -32,8 +32,6 @@ namespace slg.RobotAbstraction.Drive
 
         WheelEncoderId WheelEncoderId  { get; set; }
 
-        //int Heading { get; }
-
         int Count { get; }
 
         void Clear();
