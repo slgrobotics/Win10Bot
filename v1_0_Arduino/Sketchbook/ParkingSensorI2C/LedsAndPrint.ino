@@ -4,24 +4,24 @@ int yellowTreshold = 80;
 
 void setLeds()
 {
-  digitalWrite(ledFRYPin, LOW);
-  digitalWrite(ledFRRPin, LOW);
-  digitalWrite(ledFLYPin, LOW);
-  digitalWrite(ledFLRPin, LOW);
-  digitalWrite(ledBRYPin, LOW);
-  digitalWrite(ledBRRPin, LOW);
-  digitalWrite(ledBLYPin, LOW);
-  digitalWrite(ledBLRPin, LOW);
+  digitalWriteFast(ledFRYPin, LOW);
+  digitalWriteFast(ledFRRPin, LOW);
+  digitalWriteFast(ledFLYPin, LOW);
+  digitalWriteFast(ledFLRPin, LOW);
+  digitalWriteFast(ledBRYPin, LOW);
+  digitalWriteFast(ledBRRPin, LOW);
+  digitalWriteFast(ledBLYPin, LOW);
+  digitalWriteFast(ledBLRPin, LOW);
 
   if(rangeFRcm >= 0)
   {
     if(rangeFRcm < redTreshold)
     {
-      digitalWrite(ledFRRPin, HIGH);
+      digitalWriteFast(ledFRRPin, HIGH);
     }
     else if(rangeFRcm < yellowTreshold)
     {
-      digitalWrite(ledFRYPin, HIGH);
+      digitalWriteFast(ledFRYPin, HIGH);
     }
   }
   
@@ -29,11 +29,11 @@ void setLeds()
   {
     if(rangeFLcm < redTreshold)
     {
-      digitalWrite(ledFLRPin, HIGH);
+      digitalWriteFast(ledFLRPin, HIGH);
     }
     else if(rangeFLcm < yellowTreshold)
     {
-      digitalWrite(ledFLYPin, HIGH);
+      digitalWriteFast(ledFLYPin, HIGH);
     }
   }
     
@@ -41,11 +41,11 @@ void setLeds()
   {
     if(rangeBRcm < redTreshold)
     {
-      digitalWrite(ledBRRPin, HIGH);
+      digitalWriteFast(ledBRRPin, HIGH);
     }
     else if(rangeBRcm < yellowTreshold)
     {
-      digitalWrite(ledBRYPin, HIGH);
+      digitalWriteFast(ledBRYPin, HIGH);
     }
   }
     
@@ -53,11 +53,11 @@ void setLeds()
   {
     if(rangeBLcm < redTreshold)
     {
-      digitalWrite(ledBLRPin, HIGH);
+      digitalWriteFast(ledBLRPin, HIGH);
     }
     else if(rangeBLcm < yellowTreshold)
     {
-      digitalWrite(ledBLYPin, HIGH);
+      digitalWriteFast(ledBLYPin, HIGH);
     }
   }
 }
@@ -81,11 +81,11 @@ void test()
 
 void testOne(int led)
 {
-  digitalWrite(led, HIGH);
-  digitalWrite(ledPin, HIGH);
+  digitalWriteFast(led, HIGH);
+  digitalWriteFast(ledPin, HIGH);
   delay(100);
-  digitalWrite(led, LOW);
-  digitalWrite(ledPin, LOW);
+  digitalWriteFast(led, LOW);
+  digitalWriteFast(ledPin, LOW);
   //delay(100);
 }
 
@@ -93,26 +93,28 @@ void testOne(int led)
 // nice to have a LED blinking when signal is captured OK. Good for debugging too.
 void mLED_Red_On()
 {
-  digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+  digitalWriteFast(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
 }
 
 void mLED_Red_Off()
 {
-  digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
+  digitalWriteFast(ledPin, LOW);    // turn the LED off by making the voltage LOW
 }
 
 /*
 // some debug related stuff:
 void mLED_Dbg_On()
 {
- digitalWrite(dbgPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+ digitalWriteFast(dbgPin, HIGH);   // turn the LED on (HIGH is the voltage level)
 }
  
 void mLED_Dbg_Off()
 {
- digitalWrite(dbgPin, LOW);    // turn the LED off by making the voltage LOW
+ digitalWriteFast(dbgPin, LOW);    // turn the LED off by making the voltage LOW
 }
 */
+
+#ifdef DO_SERIAL_OUTPUT
 
 void printValues() 
 {
@@ -145,4 +147,7 @@ void printValues()
    Serial.print("\n");
    */
 }
+
+#endif // DO_SERIAL_OUTPUT
+
 

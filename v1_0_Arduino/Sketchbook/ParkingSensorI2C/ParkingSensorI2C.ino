@@ -24,10 +24,17 @@
 //#define PARKINGSENSOR_MODEL_1
 #define PARKINGSENSOR_MODEL_2
 
+#define USE_VOTING
+// produce serial output (I2C only if false):
+//#define DO_SERIAL_OUTPUT 
 
+#include <digitalWriteFast.h>
 #include <Wire.h>
 
-#define SLAVE_I2C_ADDRESS 0x9  // not to conflict with IMU-9250 addresses 0x68 0x0C
+
+#define SLAVE_I2C_ADDRESS 0x9     // not to conflict with IMU-9250 addresses 0x68 0x0C
+
+boolean runTest = true;           // blink all LEDs at startup
 
 // all you need is to tap into the data wire that goes from sensor processor to display, and of course connect the ground.
 // Car parking sensor decoding port; use pin 3 because it is connected to external interrupt 1 (INT1)
@@ -46,14 +53,15 @@ int ledBRRPin = 4;  // LED - Back Right Red
 int ledBLYPin = 5;  // LED - Back Left Yellow
 int ledBLRPin = 6;  // LED - Back Left Red
 
-boolean runTest = true;           // blink all LEDs at startup
-boolean doSerialOutput = false;   // produce serial output (I2C only if false)
-
 // readings in centimeters:
 volatile int rangeFRcm;
 volatile int rangeFLcm;
 volatile int rangeBRcm;
 volatile int rangeBLcm;
+
+#ifdef USE_VOTING
+byte rangeVotingMatrix[4][3]; // four channels, 3 voted positions
+#endif // USE_VOTING
 
 
 #ifdef PARKINGSENSOR_MODEL_1
@@ -126,20 +134,15 @@ void loop() {
   if(psiChanged)
   {
     psiChanged = false;
-    
-    rangeFRcm = psiDataToCentimeters(psiData[0]);  // front right
-    rangeFLcm = psiDataToCentimeters(psiData[1]);  // front left
-    rangeBRcm = psiDataToCentimeters(psiData[3]);  // back right
-    rangeBLcm = psiDataToCentimeters(psiData[2]);  // back left
 
-    if(doSerialOutput)
-    {
-      printValues();
-    }
-    
+#ifdef DO_SERIAL_OUTPUT
+    printValues();
+    delay(40);
+#endif // DO_SERIAL_OUTPUT
+
     setLeds();
   }
-  delay(50);
+  delay(10);
 }
 
 

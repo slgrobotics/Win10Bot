@@ -15,6 +15,7 @@ void requestEvent()
 {
   //Serial.println("requestEvent()");
 
+  // Just report current values as they are.
   // 6 bytes as expected by master:
   byte toSend[6];
   int i = 0;
