@@ -1,13 +1,23 @@
 void InitializeI2c()
 {
   Wire.begin(); // Start I2C Bus as Master
+  //Fastwire::setup(400, 0);
 }
 
-void receiveI2cPacket()
+void receiveI2cCompassPacket()
 {
+  // see C:\Projects\Arduino\Sketchbook\MotionPlug
+
+  compassYaw = mympu.ypr[0];  // -180.0,180.0
+}
+
+void receiveI2cSonarPacket()
+{
+  // see C:\Projects\Arduino\Sketchbook\ParkingSensorI2C
+  
   int checksum = 0;
 
-  Wire.requestFrom(SLAVE_I2C_ADDRESS, 6);    // request 6 bytes from slave device
+  Wire.requestFrom(SONAR_I2C_ADDRESS, 6);    // request 6 bytes from slave device
 
   int i = 1;
   while (Wire.available())  // slave may send less than requested

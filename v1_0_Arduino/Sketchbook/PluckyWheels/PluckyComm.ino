@@ -17,6 +17,11 @@ void readCommCommand()
     if(str == "reset")
     {
         Serial.print("Arduino firmware Plucky Wheels\r\n>");  // code phrase, checked by C# side
+        desiredSpeedR = 0;
+        desiredSpeedL = 0;
+        resetEma(RightMotorChannel);
+        resetEma(LeftMotorChannel);
+        EncodersReset();
     }
     else
     {
@@ -50,9 +55,16 @@ void readCommCommand()
         //Serial.println("OK: cfg");
         Serial.print("\r\nACK\r\n>");
       }
+      else if(!strcmp(tokens[0], "compass"))
+      {
+            receiveI2cCompassPacket();
+            Serial.print("\r\n");
+            Serial.print(compassYaw);
+            Serial.print("\r\n>");
+      }
       else if(!strcmp(tokens[0], "psonar"))
       {
-            receiveI2cPacket();
+            receiveI2cSonarPacket();
             Serial.print("\r\n");
             Serial.print(rangeFRcm);
             Serial.print(" ");
@@ -103,6 +115,27 @@ void readCommCommand()
         Serial.print(" ");
         Serial.print(Theta);
         Serial.print("\r\n>");
+      }
+      else if(!strcmp(tokens[0], "gps"))
+      {
+        Serial.print("\r\n");
+        if((millis() - lastGpsData) > 2000 || gpsFix == 0)
+        {
+          Serial.print("0\r\n>");
+        }
+        else
+        {
+          Serial.print(gpsFix);
+          Serial.print(" ");
+          Serial.print(gpsSat);
+          Serial.print(" ");
+          Serial.print(millis() - lastGpsData);
+          Serial.print(" ");
+          Serial.print(gpsHdop);
+          Serial.print(" ");
+          Serial.print(longlat);
+          Serial.print("\r\n>");
+        }
       }
       else if(!strcmp(tokens[0], "srf04"))
       {
@@ -238,4 +271,53 @@ void control()
   }
 }
 #endif // COMM_SIMPLE
+
+// see GPSKitchenSink.ino - it is connected to Serial1
+void readGpsUplink()
+{
+  // if there's any serial available from GPS uplink, read it:
+  if (Serial1.available() > 0)
+  {
+    // expect 
+    //  FIX 1
+    //  SAT 6
+    //  HDP 124
+    //  LOC 33.575966833 -117.662913833
+
+    String str = Serial1.readStringUntil('\n');
+    //Serial.println("read: '" + str + "'");
+    str.toCharArray(gpsChars, 100);
+
+    if(strncmp(gpsChars, "FIX", 3) == 0)
+    {
+      gpsFix = (int)atol(gpsChars+4);
+      //Serial.print("gpsFix: ");
+      //Serial.println(gpsFix);
+    }
+
+    if(strncmp(gpsChars, "SAT", 3) == 0)
+    {
+      gpsSat = (int)atol(gpsChars+4);
+      //Serial.print("gpsSat: ");
+      //Serial.println(gpsSat);
+    }
+
+    if(strncmp(gpsChars, "HDP", 3) == 0)
+    {
+      gpsHdop = (int)atol(gpsChars+4);
+      //Serial.print("gpsHdop: ");
+      //Serial.println(gpsHdop);
+    }
+
+    if(strncmp(gpsChars, "LOC", 3) == 0)
+    {
+      longlat = str.substring(4);
+      //Serial.print("longlat: ");
+      //Serial.println(longlat);
+    }
+
+    lastGpsData = millis();
+  }
+}
+
 

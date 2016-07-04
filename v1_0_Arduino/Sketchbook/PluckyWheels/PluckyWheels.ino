@@ -1,14 +1,17 @@
 
+#include <digitalWriteFast.h>
 #include <Wire.h>
+//#include "I2Cdev.h"
 #include <AlfsTechHbridge.h>
 #include <Odometry.h>
 #include <PID_v1.h>
+#include "mpu.h"        // MotionPlug
 
 int ledPin = 13;    // Arduino UNO Yellow LED
 
 const int batteryInPin = A3;  // Analog input pin that the battery 1/3 divider is attached to
 
-#define SLAVE_I2C_ADDRESS 9   // parking sonar sensor, driven by Arduino Pro Mini
+#define SONAR_I2C_ADDRESS 9   // parking sonar sensor, driven by Arduino Pro Mini
 
 const boolean doTRACE = false;
 
@@ -18,10 +21,14 @@ const int pidLoopFactor = 4;  // factor of 4 make for 20ms PID cycle
 //-------------------------------------- Variable definitions --------------------------------------------- //
 
 volatile long Ldistance, Rdistance;   // encoders - distance traveled, in ticks
+long LdistancePrev = 0;   // last encoders values - distance traveled, in ticks
+long RdistancePrev = 0;
 
 int pwm_R, pwm_L;       // pwm -255..255 sent to H-Bridge pins (will be constrained by set_motor()) 
 double dpwm_R, dpwm_L;  // correction output, calculated by PID, -255..255 normally, will be added to the above
-double speedMeasured_R, speedMeasured_L;  // percent of max speed for this drive configuration.
+
+double speedMeasured_R = 0;  // percent of max speed for this drive configuration.
+double speedMeasured_L = 0;
 
 // desired speed is set by Comm:
 double desiredSpeedR = 0.0;
@@ -64,6 +71,9 @@ volatile int rangeFLcm;
 volatile int rangeBRcm;
 volatile int rangeBLcm;
 
+// delivered by MotionPlug via I2C:
+double compassYaw = 0.0;
+
 // ------------------------------------------------------------------------------------------------------ //
 
 AlfsTechHbridge motors;  	// constructor initializes motors and encoders
@@ -78,6 +88,8 @@ void setup()
 { 
   //Serial.begin(19200);
   Serial.begin(115200);
+  Serial1.begin(57600); // connect GPS Leonardo shiend uplink (pins 3 and 8) to pins 19 (RX) and 18 (TX)
+
   pinMode (ledPin, OUTPUT);  // Status LED
 
   int PID_SAMPLE_TIME = mydt * pidLoopFactor;  // milliseconds.
@@ -92,6 +104,8 @@ void setup()
   myPID_L.SetMode(AUTOMATIC);
 
   InitializeI2c();
+
+  mympu_open(200);   // see C:\Projects\Arduino\Sketchbook\MotionPlug
 
   // ======================== init motors and encoders: ===================================
 
@@ -121,9 +135,22 @@ void setup()
   loopCnt = 0;
 }
 
+int gpsFix = 0;
+int gpsSat = 0;
+int gpsHdop = 0;
+String longlat = "";
+long lastGpsData = 0; 
+
+char gpsChars[100];
+
+
 void loop() //Main Loop
 {
-  delay(1); // 1 ms
+  //delay(1); // 1 ms
+
+  mympu_update();
+
+  readGpsUplink();
   
   if((millis() - timer) >= mydt)  // Main loop runs at 200Hz (mydt=5), to allow frequent sampling of AHRS
   {
@@ -208,9 +235,14 @@ void ema(int ch)
   }
 }
 
-void setEmaPeriod(int ch, int period)
+void resetEma(int ch)
 {
   valuePrev[ch] = -2000000.0;  // signal to use desiredSpeed directly for the first point
+}
+
+void setEmaPeriod(int ch, int period)
+{
+  resetEma(ch);
   emaPeriod[ch] = period;
   multiplier[ch] = 2.0 / (1.0 + (double)emaPeriod[ch]);
 }

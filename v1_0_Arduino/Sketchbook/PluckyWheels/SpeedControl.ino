@@ -1,8 +1,4 @@
 
-
-
-long LdistancePrev, RdistancePrev;   // last encoders values - distance traveled, in ticks
-
 void speed_calculate()
 {
   long distR = Rdistance - RdistancePrev; // around 270- 300 with 20Hz cycle and wheels in the air
