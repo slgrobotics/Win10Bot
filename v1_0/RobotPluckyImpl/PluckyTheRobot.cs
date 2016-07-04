@@ -28,12 +28,14 @@ using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
 using slg.LibRobotDrive;
 using slg.ControlDevices;
-using slg.LibSensors;
+using slg.LibSystem;
 using slg.Behaviors;
 using slg.LibMapping;
 using slg.LibRobotExceptions;
 using slg.RobotAbstraction.Sensors;
 using slg.LibRobotSLAM;
+using System.Collections.Generic;
+using slg.RobotBase;
 
 namespace slg.RobotPluckyImpl
 {
@@ -49,6 +51,7 @@ namespace slg.RobotPluckyImpl
         private const double WHEEL_BASE_METERS = 0.345d;             // actual measured 0.328d
         private const double ENCODER_TICKS_PER_REVOLUTION = 438.0d;  // ticks per one wheel rotation
         private const int ODOMETRY_SAMPLING_INTERVAL_MS = 20;        // for hardware odometry working in Arduino
+        private const int GPS_SAMPLING_INTERVAL_MS = 1000;           // for GPS processed in Arduino
 
         /*
          * Some measurements: at motor controller input 100 (full speed) the wheels rotate at 130 rpm.
@@ -75,6 +78,7 @@ namespace slg.RobotPluckyImpl
         private IDrive driveController;
         private IDriveGeometry driveGeometry;
         private IOdometry odometry;
+        private IGps gps;
         private BehaviorFactory behaviorFactory;
         private IRobotSLAM robotSlam;
 
@@ -225,6 +229,11 @@ namespace slg.RobotPluckyImpl
 
             this.odometry.OdometryChanged += ((SensorsControllerPlucky)sensorsController).ArduinoBrickOdometryChanged;
 
+            this.gps = hardwareBrick.produceGps(GPS_SAMPLING_INTERVAL_MS);
+
+            this.gps.GpsPositionChanged += ((SensorsControllerPlucky)sensorsController).ArduinoBrickGpsChanged;
+            this.gps.Enabled = true;
+
             driveController.hardwareBrickOdometry = odometry;
             driveGeometry = (IDifferentialDrive)driveController;
 
@@ -294,9 +303,13 @@ namespace slg.RobotPluckyImpl
         {
         }
 
+        private BehaviorCompositionType currentBehavior = BehaviorCompositionType.None;
         private string previousButtonCommand = string.Empty;
+        private Track currentTrack = new Track();        // stores waypoints collected on Button 9 (Left Joystick push) while joystick driving.
+        private int waypointsIndex = 0;
+        private string waypointsFileName = "MyTrack.xml";
 
-        public override void ControlDeviceCommand(string command)
+        public override async void ControlDeviceCommand(string command)
         {
             //Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
 
@@ -314,32 +327,44 @@ namespace slg.RobotPluckyImpl
                     isDispatcherCommand = false;    // no need for further processing
                     speaker.Speak("Reset X Y");
                 }
+                else if (command == "button2")  // "Button B" terminates current behavior
+                {
+                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                    terminatePreviousBehavior(command);
+                    behaviorFactory.produce(currentBehavior);   // None - closes all active tasks in Dispatcher
+                    isDispatcherCommand = false;    // no need for further command processing
+                }
                 else if (command == "button1")
                 {
                     Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
-                    behaviorFactory.produce(BehaviorCompositionType.Escape);
+                    terminatePreviousBehavior(command);
+                    currentBehavior = BehaviorCompositionType.Escape;
+                    behaviorFactory.produce(currentBehavior);
                     isDispatcherCommand = false;    // no need for further command processing
                     speaker.Speak("Escape");
                 }
                 else if (command == "button5")
                 {
                     Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
-                    behaviorFactory.produce(BehaviorCompositionType.JoystickAndStop);
+                    terminatePreviousBehavior(command);
+                    currentTrack = new Track();
+                    waypointsIndex = 0;
+                    currentBehavior = BehaviorCompositionType.JoystickAndStop;
+                    behaviorFactory.produce(currentBehavior);
                     isDispatcherCommand = false;    // no need for further command processing
                     speaker.Speak("Joystick control");
                 }
                 else if (command == "button6")
                 {
                     Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
+                    terminatePreviousBehavior(command);
 
-                    ComputeGoal();
+                    ComputeGoal();  // for CruiseAndStop - corner-to-corner 
 
-                    //behaviorFactory.produce(BehaviorCompositionType.CruiseAndStop);
-                    behaviorFactory.produce(BehaviorCompositionType.ChaseColorBlob);
-                    //behaviorFactory.produce(BehaviorCompositionType.AroundTheBlock);
+                    //currentBehavior = BehaviorCompositionType.CruiseAndStop;
+                    currentBehavior = BehaviorCompositionType.ChaseColorBlob;
+                    //currentBehavior = BehaviorCompositionType.AroundTheBlock;
+                    behaviorFactory.produce(currentBehavior);
                     isDispatcherCommand = false;    // no need for further command processing
                     //speaker.Speak("Around The Block");
                     //speaker.Speak("Cruise control");
@@ -348,7 +373,63 @@ namespace slg.RobotPluckyImpl
 
                 // buttons 7 and 8 on RamblePad2 reserved for throttle up/down control.
 
-                previousButtonCommand = command;
+                else if (command == "button9")  // Left Joystick push
+                {
+                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                    isDispatcherCommand = false;    // no need for further command processing
+                    bool allowStaleGps = true;
+                    bool allowOnlyGpsFix3D = false;
+
+                    if (!allowStaleGps && (DateTime.Now - new DateTime(currentSensorsData.GpsTimestamp)).TotalSeconds > 3)
+                    {
+                        speaker.Speak("Cannot add waypoint, GPS data stale");
+                    }
+                    else
+                    {
+                        if (!allowOnlyGpsFix3D || allowOnlyGpsFix3D && currentSensorsData.GpsFixType == GpsFixTypes.Fix3D)
+                        {
+                            currentTrack.trackpoints.Add(new Trackpoint(
+                                waypointsIndex,
+                                waypointsIndex == 0,
+                                currentSensorsData.GpsLatitude,
+                                currentSensorsData.GpsLongitude,
+                                currentSensorsData.GpsAltitude
+                            ));
+                            waypointsIndex++;
+                            speaker.Speak("Added waypoint " + currentTrack.Count);
+                        }
+                        else
+                        {
+                            speaker.Speak("Cannot add waypoint, low GPS fix: " + currentSensorsData.GpsFixType);
+                        }
+                    }
+                }
+                else if (command == "button8")  // 
+                {
+                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                    isDispatcherCommand = false;    // no need for further command processing
+
+                    // Load stored waypoints:
+                    // from C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+                    //currentTrack = await SerializableStorage<Track>.Load(waypointsFileName);
+                    //speaker.Speak("loaded track - " + currentTrack.Count + " trackpoints");
+
+                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                    terminatePreviousBehavior(command);
+
+                    currentBehavior = BehaviorCompositionType.RouteFollowing;
+                    behaviorFactory.produce(currentBehavior);
+                    isDispatcherCommand = false;    // no need for further command processing
+                    speaker.Speak("Trackpoints following");
+                }
+                else
+                {
+                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                    isDispatcherCommand = false;    // no need for further command processing
+                    speaker.Speak(command + " not supported");
+                }
+
+                previousButtonCommand = command;    // avoid repetitions
             }
 
             if (isDispatcherCommand)
@@ -356,6 +437,29 @@ namespace slg.RobotPluckyImpl
                 // dispatcher will be forwarding command like "speed" to behaviors
                 subsumptionTaskDispatcher.ControlDeviceCommand(command);
             }
+        }
+
+        private void terminatePreviousBehavior(string command)
+        {
+            if (currentBehavior != BehaviorCompositionType.None)
+            {
+                speaker.Speak("terminating " + Helpers.CamelCaseToSpokenString(currentBehavior.ToString()));
+
+                switch (currentBehavior)
+                {
+                    case BehaviorCompositionType.JoystickAndStop:
+                        if (currentTrack.Count > 2)
+                        {
+                            // Save accumulated waypoints:
+                            speaker.Speak("saving track - " + currentTrack.Count + " trackpoints");
+                            // saved in C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+                            SerializableStorage<Track>.Save(waypointsFileName, currentTrack);
+                        }
+                        break;
+                }
+                currentBehavior = BehaviorCompositionType.None;
+            }
+            lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
         }
 
         #endregion // Control Device command processing

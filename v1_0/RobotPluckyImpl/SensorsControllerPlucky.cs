@@ -382,6 +382,29 @@ namespace slg.RobotPluckyImpl
             }
         }
 
+        internal void ArduinoBrickGpsChanged(RobotAbstraction.IHardwareComponent sender)
+        {
+            IGps gps = (IGps)sender;
+
+            lock (currentSensorsDataLock)
+            {
+                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+
+                sensorsData.GpsLatitude = gps.Latitude;
+                sensorsData.GpsLongitude = gps.Longitude;
+                sensorsData.GpsAltitude = gps.Altitude;
+                sensorsData.GpsNsat = gps.GpsNsat;
+                sensorsData.GpsHdop = gps.GpsHdop;
+                sensorsData.FixAgeMs = gps.FixAgeMs;
+                sensorsData.GpsTimeUTC = gps.TimeUTC;
+                sensorsData.GpsFixType = gps.FixType;
+
+                //Debug.WriteLine(sensorsData.ToString());
+
+                this.currentSensorsData = sensorsData;
+            }
+        }
+
         #endregion // Wheel Encoders related
     }
 }

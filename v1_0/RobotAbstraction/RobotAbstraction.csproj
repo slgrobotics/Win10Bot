@@ -130,6 +130,7 @@
     <Compile Include="Sensors\IAhrs.cs" />
     <Compile Include="Sensors\IAnalogSensor.cs" />
     <Compile Include="Sensors\ICompassCMPS03.cs" />
+    <Compile Include="Sensors\IGps.cs" />
     <Compile Include="Sensors\IOdometry.cs" />
     <Compile Include="Sensors\ISharpGP2D12.cs" />
     <Compile Include="Sensors\IParkingSonar.cs" />

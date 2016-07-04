@@ -122,6 +122,7 @@
     <Compile Include="BehaviorGoToAngle.cs" />
     <Compile Include="BehaviorGoToGoal.cs" />
     <Compile Include="BehaviorGoToPixy.cs" />
+    <Compile Include="BehaviorRouteFollowing.cs" />
     <Compile Include="BehaviorSlidingMode.cs" />
     <Compile Include="BehaviorStop.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

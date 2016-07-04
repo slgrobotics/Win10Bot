@@ -461,7 +461,7 @@ namespace slg.LibMapping
 
 		public string ToStringExact()
 		{
-			return "Lng=" + Lng + "   Lat=" + Lat;
+			return String.Format("Lat={0:N9}   Lon={1:N9}", Lat, Lng);
 		}
 
 		public override string ToString()

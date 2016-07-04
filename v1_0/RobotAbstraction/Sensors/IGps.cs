@@ -16,30 +16,32 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace slg.RobotBase
-{
-    public class Helpers
-    {
-        public static string CamelCaseToSpokenString(string sPose)
-        {
-            // split CamelCase into words:
-            Regex upperCaseRegex = new Regex(@"[A-Z]{1}[a-z]*");
-            MatchCollection matches = upperCaseRegex.Matches(sPose);
-            List<string> words = new List<string>();
-            foreach (Match match in matches)
-            {
-                words.Add(match.Value);
-            }
-            return string.Join(" ", words.ToArray());
-        }
+using slg.RobotAbstraction.Events;
 
+namespace slg.RobotAbstraction.Sensors
+{
+    public enum GpsFixTypes { None, Fix2D, Fix3D }
+
+    public interface IGps
+    {
+        bool Enabled { get; set; }
+
+        Task Open(CancellationTokenSource cts);
+        void Close();
+
+        double Latitude { get; }
+        double Longitude { get; }
+        double? Altitude { get; }
+        int GpsNsat { get; }
+        int GpsHdop { get; }
+        int FixAgeMs { get; }
+        DateTime TimeUTC { get; }
+        GpsFixTypes FixType { get; }
+        long timestamp { get; }
+
+        event HardwareComponentEventHandler GpsPositionChanged;
     }
 }

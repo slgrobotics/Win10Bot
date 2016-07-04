@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 
 using slg.RobotBase.Interfaces;
+using slg.RobotAbstraction.Sensors;
 
 namespace slg.LibSensors
 {
@@ -63,6 +64,17 @@ namespace slg.LibSensors
 
         // Compass reading - for example, CMPS03 Compass connected via I2C
         public double? CompassHeadingDegrees { get; set; }
+
+        // GPS data
+        public GpsFixTypes GpsFixType { get; set; }
+        public double GpsLatitude { get; set; }
+        public double GpsLongitude { get; set; }
+        public double? GpsAltitude { get; set; }
+        public int GpsNsat { get; set; }
+        public int GpsHdop { get; set; }
+        public int FixAgeMs { get; set; }
+        public DateTime? GpsTimeUTC { get; set; }
+        public long GpsTimestamp { get; set; }
 
         // Pixy camera bearing to detected object:
         public double? TargetingCameraBearingDegrees { get; set; }
@@ -134,6 +146,16 @@ namespace slg.LibSensors
 
             this.CompassHeadingDegrees = src.CompassHeadingDegrees;
 
+            this.GpsFixType = src.GpsFixType;
+            this.GpsLatitude = src.GpsLatitude;
+            this.GpsLongitude = src.GpsLongitude;
+            this.GpsAltitude = src.GpsAltitude;
+            this.GpsNsat = src.GpsNsat;
+            this.GpsHdop = src.GpsHdop;
+            this.FixAgeMs = src.FixAgeMs;
+            this.GpsTimeUTC = src.GpsTimeUTC;
+            this.GpsTimestamp = src.GpsTimestamp;
+
             this.TargetingCameraBearingDegrees = src.TargetingCameraBearingDegrees;
             this.TargetingCameraInclinationDegrees = src.TargetingCameraInclinationDegrees;
             this.TargetingCameraTimestamp = src.TargetingCameraTimestamp;
@@ -162,10 +184,16 @@ namespace slg.LibSensors
             //                        IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters, RangerFrontLeftMeters, RangerFrontRightMeters, WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
             //                        (isPixyValid ? TargetingCameraBearingDegrees : null), (isPixyValid ? TargetingCameraInclinationDegrees : null));
 
-            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    \r\nBATTERY: {6}   COMPASS: {7:0}    Camera: {8:0} {9:0}",
+            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    ",
                                     RangerFrontLeftMeters, RangerFrontRightMeters, RangerRearLeftMeters, RangerRearRightMeters, 
-                                    WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
+                                    WheelEncoderLeftTicks, WheelEncoderRightTicks
+                                )
+            + string.Format("\r\nBATTERY: {0}   COMPASS: {1:0}    Camera: {2:0} {3:0}    ",
+                                    batteryLevel, CompassHeadingDegrees,
                                     (isCameraValid ? TargetingCameraBearingDegrees : null), (isCameraValid ? TargetingCameraInclinationDegrees : null)
+                                )
+            + string.Format("\r\nGPS Fix: {0}   NSat: {1}   HDOP: {2}   AgeMs: {3}    Lat: {4:N9}   Lon: {5:N9}",
+                                    GpsFixType, GpsNsat, GpsHdop, FixAgeMs, GpsLatitude, GpsLongitude
                                 );
         }
     }

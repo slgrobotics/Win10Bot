@@ -114,6 +114,7 @@
     <Compile Include="HardwareComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sensors\AnalogSensor.cs" />
+    <Compile Include="Sensors\GpsReader.cs" />
     <Compile Include="Sensors\MotionPlug.cs" />
     <Compile Include="Sensors\OdometryReader.cs" />
     <Compile Include="Sensors\ParkingSonar.cs" />

@@ -16,30 +16,18 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace slg.RobotBase
+namespace slg.LibMapping
 {
-    public class Helpers
+    [DataContract]
+    public class WayPoint
     {
-        public static string CamelCaseToSpokenString(string sPose)
-        {
-            // split CamelCase into words:
-            Regex upperCaseRegex = new Regex(@"[A-Z]{1}[a-z]*");
-            MatchCollection matches = upperCaseRegex.Matches(sPose);
-            List<string> words = new List<string>();
-            foreach (Match match in matches)
-            {
-                words.Add(match.Value);
-            }
-            return string.Join(" ", words.ToArray());
-        }
-
+        [DataMember]
+        public double Latitude { get; set; }
+        [DataMember]
+        public double Longitude { get; set; }
+        [DataMember]
+        public double? Altitude { get; set; }
     }
 }

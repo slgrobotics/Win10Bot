@@ -24,6 +24,13 @@ namespace slg.LibRobotSLAM
                 behaviorData.robotPose.direction.heading = behaviorData.sensorsData.CompassHeadingDegrees;
             }
 
+            // use GPS data to update position:
+            if (behaviorData.sensorsData.GpsFixType != GpsFixTypes.None)
+            {
+                behaviorData.robotPose.geoPosition.Lat = behaviorData.sensorsData.GpsLatitude;
+                behaviorData.robotPose.geoPosition.Lng = behaviorData.sensorsData.GpsLongitude;
+            }
+
             // utilize odometry data: 
             if (driveController.hardwareBrickOdometry != null)
             {

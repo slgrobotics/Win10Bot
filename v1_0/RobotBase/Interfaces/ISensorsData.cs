@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using slg.RobotAbstraction.Sensors;
 
 namespace slg.RobotBase.Interfaces
 {
@@ -58,6 +59,17 @@ namespace slg.RobotBase.Interfaces
 
         // Compass reading - for example, CMPS03 Compass connected via I2C
         double? CompassHeadingDegrees { get; set; }
+
+        // GPS data
+        GpsFixTypes GpsFixType { get; set; }
+        double GpsLatitude { get; set; }
+        double GpsLongitude { get; set; }
+        double? GpsAltitude { get; set; }
+        int GpsNsat { get; }
+        int GpsHdop { get; }
+        int FixAgeMs { get; }
+        DateTime? GpsTimeUTC { get; set; }
+        long GpsTimestamp { get; set; }
 
         // Targeting camera (i.e. Pixy Camera) bearing to a detected object:
         double? TargetingCameraBearingDegrees { get; set; }

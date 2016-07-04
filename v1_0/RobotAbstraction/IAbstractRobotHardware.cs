@@ -44,6 +44,8 @@ namespace slg.RobotAbstraction
 
         IOdometry produceOdometry(int updateFrequency);
 
+        IGps produceGps(int updateFrequency);
+
         IAnalogSensor produceAnalogSensor(AnalogPinId pin, int updateFrequency, double valueChangedThreshold);
 
         ICompassCMPS03 produceCompassCMPS03(int i2CAddress, int updateFrequency, double headingChangedThreshold);

@@ -394,6 +394,11 @@ namespace cmRobot.Element
             throw new NotImplementedException();
         }
 
+        public IGps produceGps(int updateFrequency)
+        {
+            throw new NotImplementedException();
+        }
+
         public IAhrs produceAhrs(int i2CAddress, int updateFrequency, double headingChangedThreshold)
         {
             throw new NotImplementedException();

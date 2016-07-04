@@ -79,6 +79,11 @@ namespace slg.ArduinoRobotHardware
             return new OdometryReader(commTask, tokenSource.Token, updateFrequency);
         }
 
+        public IGps produceGps(int updateFrequency)
+        {
+            return new GpsReader(commTask, tokenSource.Token, updateFrequency);
+        }
+
         public IAnalogSensor produceAnalogSensor(AnalogPinId pin, int updateFrequency, double valueChangedThreshold)
         {
             return new AnalogSensor(commTask, tokenSource.Token, updateFrequency, pin, (int)valueChangedThreshold);

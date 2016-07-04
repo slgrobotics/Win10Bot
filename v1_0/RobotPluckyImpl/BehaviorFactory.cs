@@ -31,10 +31,12 @@ namespace slg.RobotPluckyImpl
 {
     public enum BehaviorCompositionType
     {
+        None,
         JoystickAndStop,
         CruiseAndStop,
         AroundTheBlock,
         ChaseColorBlob,
+        RouteFollowing,
         Escape
     }
 
@@ -224,6 +226,45 @@ namespace slg.RobotPluckyImpl
                     subsumptionDispatcher.Dispatch(new BehaviorGoToPixy(driveGeometry) {
                         name = "BehaviorGoToPixy",
                         speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 100.0d, 100.0d)
+                    {
+                        name = "BehaviorGoToAngle",
+                        speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorStopPlucky()
+                    {
+                        name = "BehaviorStop",
+                        speaker = this.speaker,
+                        tresholdStopMeters = 0.6d,
+                        //BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd); }
+                        //BehaviorActivateCondition = bd => { return false; }
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
+                    {
+                        name = "Escape",
+                        speaker = this.speaker,
+                        BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                        BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
+                        BehaviorTerminateCondition = bd => { return false; }   // do not terminate
+                    });
+
+                    break;
+
+                case BehaviorCompositionType.RouteFollowing:
+
+                    // this is how to mount Raspberry Pi SD card: \\172.16.1.175\c$
+                    //string trackFileName = @"C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\ParkingLot1.waypoints";
+                    // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\ParkingLot1.waypoints
+                    // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppxLayouts\RobotPluckyPackageVS.Debug_ARM.sergei\ParkingLot1.waypoints
+                    string trackFileName = "ParkingLot1.waypoints";
+
+                    subsumptionDispatcher.Dispatch(new BehaviorRouteFollowing(driveGeometry, this.speaker, trackFileName)
+                    {
+                        name = "BehaviorRouteFollowing"
                     });
 
                     subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 100.0d, 100.0d)
