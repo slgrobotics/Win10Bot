@@ -88,7 +88,7 @@ namespace slg.ArduinoRobotHardware.Controllers
         }
 
         public DifferentialMotorController(CommunicationTask cTask, CancellationToken ct, int si)
-            : base(cTask, ct, si)
+            : base("DifferentialMotorController", cTask, ct, si)
         {
             Start();
         }
@@ -116,7 +116,7 @@ namespace slg.ArduinoRobotHardware.Controllers
         protected override async Task roundtrip()
         {
             // not really doing anything here yet
-            await Task.Delay(samplingIntervalMs);
+            await Task.Delay(1, cancellationToken);
         }
     }
 }

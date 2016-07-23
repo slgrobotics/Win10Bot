@@ -28,7 +28,7 @@ namespace slg.ArduinoRobotHardware.Sensors
     public class OdometryReader : HardwareComponent, IOdometry
     {
         public OdometryReader(CommunicationTask cTask, CancellationToken ct, int si)
-            : base(cTask, ct, si)
+            : base("OdometryReader", cTask, ct, si)
         {
             Start();
         }

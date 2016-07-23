@@ -29,5 +29,15 @@ namespace slg.LibMapping
         public double Longitude { get; set; }
         [DataMember]
         public double? Altitude { get; set; }
+
+        public WayPoint()
+        { }
+
+        public WayPoint(double lat, double lng, double? alt = null)
+        {
+            Latitude = lat;
+            Longitude = lng;
+            Altitude = alt;
+        }
     }
 }

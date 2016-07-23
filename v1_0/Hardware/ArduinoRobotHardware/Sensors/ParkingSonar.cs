@@ -34,7 +34,7 @@ namespace slg.ArduinoRobotHardware.Sensors
         public event HardwareComponentEventHandler DistanceChanged;
 
         public ParkingSonar(CommunicationTask cTask, CancellationToken ct, int uf)
-            : base(cTask, ct, uf)
+            : base("ParkingSonar", cTask, ct, uf)
         {
             Start();
         }

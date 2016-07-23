@@ -15,24 +15,27 @@
  * although doing so, donating and contributing is always appreciated
  */
 
+using System;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Diagnostics;
 
 using slg.RobotAbstraction;
-using System.Diagnostics;
 
 namespace slg.ArduinoRobotHardware
 {
     public abstract class HardwareComponent : IHardwareComponent
     {
         public virtual bool Enabled { get; set; }
+        public string ComponentName { get; set; }
 
         protected CommunicationTask commTask;
         protected CancellationToken cancellationToken;
         protected int samplingIntervalMs;
 
-        public HardwareComponent(CommunicationTask cTask, CancellationToken ct, int si)
+        public HardwareComponent(string name, CommunicationTask cTask, CancellationToken ct, int si)
         {
+            ComponentName = name;
             commTask = cTask;
             cancellationToken = ct;
             Debug.Assert(si > 1, "samplingIntervalMs must be larger than 1");
@@ -46,6 +49,8 @@ namespace slg.ArduinoRobotHardware
 
         private void DoWork()
         {
+            Debug.WriteLine("HardwareComponent: DoWork: " + ComponentName + " started");
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 if (Enabled && commTask.running)
@@ -53,14 +58,26 @@ namespace slg.ArduinoRobotHardware
                     try
                     {
                         roundtrip().Wait();
+                        //roundtrip().Wait(cancellationToken); - cannot do it, will not re-open comm port
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
-                        ;
+                        Debug.WriteLine("HardwareComponent: DoWork: " + ComponentName + "roundtrip(): canceled");
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("Error: HardwareComponent: DoWork: " + ComponentName + "roundtrip(): " + exc);
                     }
                 }
-                Task.Delay(samplingIntervalMs).Wait();
+                try
+                {
+                    //Task.Delay(samplingIntervalMs).Wait();
+                    Task.Delay(samplingIntervalMs).Wait(cancellationToken);
+                }
+                catch { }
             }
+
+            Debug.WriteLine("HardwareComponent: DoWork: " + ComponentName + " exited");
         }
 
         protected abstract Task roundtrip();

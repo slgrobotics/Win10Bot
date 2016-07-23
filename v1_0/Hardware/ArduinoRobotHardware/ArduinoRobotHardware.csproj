@@ -110,6 +110,7 @@
     <Compile Include="ArduinoBrick.cs" />
     <Compile Include="CommandAndResponse.cs" />
     <Compile Include="CommunicationTask.cs" />
+    <Compile Include="Controllers\DifferentialMotorControllerT.cs" />
     <Compile Include="Controllers\DifferentialMotorController.cs" />
     <Compile Include="HardwareComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

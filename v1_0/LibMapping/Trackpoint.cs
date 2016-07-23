@@ -35,13 +35,19 @@ namespace slg.LibMapping
     [DataContract]
     public class Trackpoint : WayPoint
     {
+        [DataMember]
         public int number;              // sequential number taken from column 1 of the file
+        [DataMember]
         public MAV_CMD id;				// command id
+        [DataMember]
         public bool isHome;             // home waypoint is marked by this flag.
+        [DataMember]
         public TrackpointState trackpointState;
+        [DataMember]
+        public GeoPosition geoPosition;
+
         public DateTime? estimatedTimeOfArrival;    // when we set to reach the waypoint, we estimate arrival
         public CoordinateFrameOption coordinateFrameOption;
-        public GeoPosition geoPosition;
         public double p1;				// param 1
         public double p2;				// param 2
         public double p3;				// param 3
@@ -65,6 +71,7 @@ namespace slg.LibMapping
         /// </summary>
         /// <param name="lw"></param>
         internal Trackpoint(Locationwp lw)
+            : base(lw.lat, lw.lng, lw.alt)
         {
             trackpointState = TrackpointState.None;
 

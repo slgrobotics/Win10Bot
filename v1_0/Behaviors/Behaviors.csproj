@@ -143,6 +143,10 @@
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
+    <ProjectReference Include="..\LibSystem\LibSystem.csproj">
+      <Project>{2D8B251F-77B3-4F13-BEA9-21E1ED5E0936}</Project>
+      <Name>LibSystem</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RobotBase\RobotBase.csproj">
       <Project>{63d901ea-57a0-431b-a6ff-bea3850abefe}</Project>
       <Name>RobotBase</Name>

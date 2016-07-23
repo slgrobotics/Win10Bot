@@ -317,118 +317,117 @@ namespace slg.RobotPluckyImpl
 
             if (command.StartsWith("button") && previousButtonCommand != command)   // avoid button commands repetitions
             {
-                if (command == "button4")
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    robotPose.resetXY();
-                    //robotPose.resetRotation();
-                    robotPose.direction = new Direction() { heading = currentSensorsData.CompassHeadingDegrees };
-                    driveController.OdometryReset();
-                    isDispatcherCommand = false;    // no need for further processing
-                    speaker.Speak("Reset X Y");
-                }
-                else if (command == "button2")  // "Button B" terminates current behavior
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    terminatePreviousBehavior(command);
-                    behaviorFactory.produce(currentBehavior);   // None - closes all active tasks in Dispatcher
-                    isDispatcherCommand = false;    // no need for further command processing
-                }
-                else if (command == "button1")
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    terminatePreviousBehavior(command);
-                    currentBehavior = BehaviorCompositionType.Escape;
-                    behaviorFactory.produce(currentBehavior);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak("Escape");
-                }
-                else if (command == "button5")
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    terminatePreviousBehavior(command);
-                    currentTrack = new Track();
-                    waypointsIndex = 0;
-                    currentBehavior = BehaviorCompositionType.JoystickAndStop;
-                    behaviorFactory.produce(currentBehavior);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak("Joystick control");
-                }
-                else if (command == "button6")
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    terminatePreviousBehavior(command);
+                Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
+                isDispatcherCommand = false;    // no need for further command processing
 
-                    ComputeGoal();  // for CruiseAndStop - corner-to-corner 
-
-                    //currentBehavior = BehaviorCompositionType.CruiseAndStop;
-                    currentBehavior = BehaviorCompositionType.ChaseColorBlob;
-                    //currentBehavior = BehaviorCompositionType.AroundTheBlock;
-                    behaviorFactory.produce(currentBehavior);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    //speaker.Speak("Around The Block");
-                    //speaker.Speak("Cruise control");
-                    speaker.Speak("Chase color");
-                }
-
-                // buttons 7 and 8 on RamblePad2 reserved for throttle up/down control.
-
-                else if (command == "button9")  // Left Joystick push
+                switch (command)
                 {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    bool allowStaleGps = true;
-                    bool allowOnlyGpsFix3D = false;
+                    case "button1":  // "A" button - caution: screen side effects
+                        terminatePreviousBehavior(command);
+                        currentBehavior = BehaviorCompositionType.Escape;
+                        behaviorFactory.produce(currentBehavior);
+                        speaker.Speak("Escape");
+                        break;
 
-                    if (!allowStaleGps && (DateTime.Now - new DateTime(currentSensorsData.GpsTimestamp)).TotalSeconds > 3)
-                    {
-                        speaker.Speak("Cannot add waypoint, GPS data stale");
-                    }
-                    else
-                    {
-                        if (!allowOnlyGpsFix3D || allowOnlyGpsFix3D && currentSensorsData.GpsFixType == GpsFixTypes.Fix3D)
+                    case "button2":  // "B" button terminates current behavior
+                        terminatePreviousBehavior(command);
+                        behaviorFactory.produce(currentBehavior);   // None - closes all active tasks in Dispatcher
+                        break;
+
+                    //case "button3":  // "X" button
+                    //    break;
+
+                    case "button4":   // "Y" button
+                        robotPose.resetXY();
+                        //robotPose.resetRotation();
+                        robotPose.direction = new Direction() { heading = currentSensorsData.CompassHeadingDegrees };
+                        driveController.OdometryReset();
+                        speaker.Speak("Reset X Y");
+                        break;
+
+                    case "button5":  // "Left Bumper"
+                        terminatePreviousBehavior(command);
+                        currentTrack = new Track() { trackFileName = waypointsFileName };
+                        waypointsIndex = 0;
+                        currentBehavior = BehaviorCompositionType.JoystickAndStop;
+                        behaviorFactory.produce(currentBehavior);
+                        speaker.Speak("Joystick control");
+                        break;
+
+                    case "button6":  // "Right Bumper"
+                        terminatePreviousBehavior(command);
+
+                        ComputeGoal();  // for CruiseAndStop - corner-to-corner 
+
+                        //currentBehavior = BehaviorCompositionType.CruiseAndStop;
+                        currentBehavior = BehaviorCompositionType.ChaseColorBlob;
+                        //currentBehavior = BehaviorCompositionType.AroundTheBlock;
+                        behaviorFactory.produce(currentBehavior);
+                        //speaker.Speak("Around The Block");
+                        //speaker.Speak("Cruise control");
+                        speaker.Speak("Chase color");
+                        break;
+
+                    // buttons 7 and 8 on RamblePad2 reserved for throttle up/down control. Not on Xbox360 controller.
+
+                    case "button7":  // "Back" to the left of the sphere
+                        terminatePreviousBehavior(command);
+
+                        // Load stored waypoints:
+                        // from C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+
+                        currentBehavior = BehaviorCompositionType.RouteFollowing;
+                        behaviorFactory.TrackFileName = null;   // will be replaced with "MyTrack.xml" and serializer will be used.
+                        behaviorFactory.produce(currentBehavior);
+                        speaker.Speak("Saved trackpoints following");
+                        break;
+
+                    case "button8":  // "Start" to the right of the sphere
+                        terminatePreviousBehavior(command);
+                        currentBehavior = BehaviorCompositionType.RouteFollowing;
+                        behaviorFactory.TrackFileName = "ParkingLot1.waypoints";
+                        behaviorFactory.produce(currentBehavior);
+                        speaker.Speak("Planned trackpoints following");
+                        break;
+
+                    case "button9":  // Left Joystick push
                         {
-                            currentTrack.trackpoints.Add(new Trackpoint(
-                                waypointsIndex,
-                                waypointsIndex == 0,
-                                currentSensorsData.GpsLatitude,
-                                currentSensorsData.GpsLongitude,
-                                currentSensorsData.GpsAltitude
-                            ));
-                            waypointsIndex++;
-                            speaker.Speak("Added waypoint " + currentTrack.Count);
+                            bool allowStaleGps = true;
+                            bool allowOnlyGpsFix3D = false;
+
+                            if (!allowStaleGps && (DateTime.Now - new DateTime(currentSensorsData.GpsTimestamp)).TotalSeconds > 3)
+                            {
+                                speaker.Speak("Cannot add waypoint, GPS data stale");
+                            }
+                            else
+                            {
+                                if (!allowOnlyGpsFix3D || allowOnlyGpsFix3D && currentSensorsData.GpsFixType == GpsFixTypes.Fix3D)
+                                {
+                                    currentTrack.trackpoints.Add(new Trackpoint(
+                                        waypointsIndex,
+                                        false, //waypointsIndex == 0,       // home
+                                        currentSensorsData.GpsLatitude,
+                                        currentSensorsData.GpsLongitude,
+                                        currentSensorsData.GpsAltitude
+                                    ));
+                                    waypointsIndex++;
+                                    speaker.Speak("Added waypoint " + currentTrack.Count);
+                                }
+                                else
+                                {
+                                    speaker.Speak("Cannot add waypoint, low GPS fix: " + currentSensorsData.GpsFixType);
+                                }
+                            }
                         }
-                        else
-                        {
-                            speaker.Speak("Cannot add waypoint, low GPS fix: " + currentSensorsData.GpsFixType);
-                        }
-                    }
+                        break;
+
+                    //case "button10":  // right stick push
+                    //    break;
+
+                    default:
+                        speaker.Speak(command + " not supported");
+                        break;
                 }
-                else if (command == "button8")  // 
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    isDispatcherCommand = false;    // no need for further command processing
-
-                    // Load stored waypoints:
-                    // from C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
-                    //currentTrack = await SerializableStorage<Track>.Load(waypointsFileName);
-                    //speaker.Speak("loaded track - " + currentTrack.Count + " trackpoints");
-
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    terminatePreviousBehavior(command);
-
-                    currentBehavior = BehaviorCompositionType.RouteFollowing;
-                    behaviorFactory.produce(currentBehavior);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak("Trackpoints following");
-                }
-                else
-                {
-                    Debug.WriteLine("PluckyTheRobot: ControlDeviceCommand: " + command);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak(command + " not supported");
-                }
-
                 previousButtonCommand = command;    // avoid repetitions
             }
 
@@ -452,7 +451,8 @@ namespace slg.RobotPluckyImpl
                         {
                             // Save accumulated waypoints:
                             speaker.Speak("saving track - " + currentTrack.Count + " trackpoints");
-                            // saved in C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+                            // saved in:  PC:    C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+                            //            RPi:   \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState
                             SerializableStorage<Track>.Save(waypointsFileName, currentTrack);
                         }
                         break;

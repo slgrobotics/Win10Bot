@@ -28,7 +28,7 @@ namespace slg.ArduinoRobotHardware.Sensors
     public class GpsReader : HardwareComponent, IGps
     {
         public GpsReader(CommunicationTask cTask, CancellationToken ct, int si)
-            : base(cTask, ct, si)
+            : base("GpsReader", cTask, ct, si)
         {
             FixType = GpsFixTypes.None;
             Altitude = null;
@@ -75,6 +75,7 @@ namespace slg.ArduinoRobotHardware.Sensors
         {
             string cmd = "gps";
             string resp = await commTask.SendAndReceive(cmd);
+            bool respOk = false;
 
             // expect:
             //   1 8 722 100 33.575926500 -117.662919667
@@ -84,7 +85,12 @@ namespace slg.ArduinoRobotHardware.Sensors
 
             if (!string.IsNullOrWhiteSpace(resp))
             {
-                if (resp.Trim().IndexOf(" ") > 0)
+                if (resp.Trim() == "0")
+                {
+                    // when there is no GPS fix, Response contains single "0" character.
+                    respOk = true;
+                }
+                else if (resp.Trim().IndexOf(" ") > 0)
                 {
                     string[] splitResp = resp.Trim().Split(new char[] { ' ' });
 
@@ -102,6 +108,8 @@ namespace slg.ArduinoRobotHardware.Sensors
                             && int.TryParse(splitResp[2].Trim(), out fixAge) && int.TryParse(splitResp[3].Trim(), out gpsHdop)
                             && double.TryParse(splitResp[4].Trim(), out latitude) && double.TryParse(splitResp[5].Trim(), out longitude))
                         {
+                            respOk = true;  // all numbers are parsable, this is OK response.
+
                             if (lastFix != fix || lastNsat != nSat || lastFixAge != fixAge
                                 || lastGpsHdop != gpsHdop || lastLatitude != latitude || lastLongitude != longitude)
                             {
@@ -127,7 +135,7 @@ namespace slg.ArduinoRobotHardware.Sensors
                 }
                 FixType = GpsFixTypes.None;
             }
-            Debug.WriteLineIf(!cancellationToken.IsCancellationRequested, "GpsReader: roundtrip() : could not parse response: '" + resp + "'");
+            Debug.WriteLineIf(!cancellationToken.IsCancellationRequested && !respOk, "GpsReader: roundtrip() : could not parse response: '" + resp + "'");
         }
     }
 }

@@ -30,7 +30,7 @@ namespace slg.LibMapping
     public class Track
     {
         [DataMember]
-        private string trackFileName;
+        public string trackFileName;
 
         [DataMember]
         public List<Trackpoint> trackpoints = new List<Trackpoint>();

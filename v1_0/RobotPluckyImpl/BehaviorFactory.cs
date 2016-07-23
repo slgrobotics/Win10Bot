@@ -53,10 +53,18 @@ namespace slg.RobotPluckyImpl
 
         private ISpeaker speaker;
 
+        // related to "Route Following""
+        // On the PC: @"C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml";
+        // this is how to mount Raspberry Pi SD card: \\172.16.1.175\c$
+        // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+        // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppxLayouts\RobotPluckyPackageVS.Debug_ARM.sergei\ParkingLot1.waypoints
+        // do not supply path, just the file name:
+        public string TrackFileName { private get; set; }
+
         // related to "Around the block":
-        DateTime activatedFW;
-        double initialCompassHeadingDegrees;
-        bool isFinishedFW;
+        private DateTime activatedFW;
+        private double initialCompassHeadingDegrees;
+        private bool isFinishedFW;
 
         public BehaviorFactory(SubsumptionTaskDispatcher disp, IDriveGeometry driveGeom, ISpeaker speaker)
         {
@@ -256,13 +264,7 @@ namespace slg.RobotPluckyImpl
 
                 case BehaviorCompositionType.RouteFollowing:
 
-                    // this is how to mount Raspberry Pi SD card: \\172.16.1.175\c$
-                    //string trackFileName = @"C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\ParkingLot1.waypoints";
-                    // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\ParkingLot1.waypoints
-                    // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppxLayouts\RobotPluckyPackageVS.Debug_ARM.sergei\ParkingLot1.waypoints
-                    string trackFileName = "ParkingLot1.waypoints";
-
-                    subsumptionDispatcher.Dispatch(new BehaviorRouteFollowing(driveGeometry, this.speaker, trackFileName)
+                    subsumptionDispatcher.Dispatch(new BehaviorRouteFollowing(driveGeometry, this.speaker, TrackFileName)
                     {
                         name = "BehaviorRouteFollowing"
                     });

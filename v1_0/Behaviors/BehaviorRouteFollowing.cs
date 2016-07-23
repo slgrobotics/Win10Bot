@@ -20,12 +20,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 
 using slg.LibRuntime;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
 using slg.LibMapping;
+using slg.LibSystem;
+using Windows.Foundation;
 
 namespace slg.Behaviors
 {
@@ -55,16 +58,16 @@ namespace slg.Behaviors
 
         private const double WAYPOINT_CANTREACH_SECONDS = 30;
 
+        private string savedTrackFileName = "MyTrack.xml";
         private Track missionTrack;
-
         private Trackpoint nextWp = null;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="ddg"></param>
-        /// <param name="trackFileName"></param>
-        /// <param name="maxVelocityPercent">0...100</param>
+        /// <param name="speaker"></param>
+        /// <param name="trackFileName">can be null, for a saved track</param>
         public BehaviorRouteFollowing(IDriveGeometry ddg, ISpeaker speaker, string trackFileName)
             : base(ddg)
         {
@@ -80,30 +83,63 @@ namespace slg.Behaviors
                 return nextWp == null;
             };
 
-            speaker.Speak("Loading file " + trackFileName);
-
-            missionTrack = new Track();
-
-            try
+            if (String.IsNullOrWhiteSpace(trackFileName))
             {
-                missionTrack.Init(trackFileName);
+                speaker.Speak("Loading saved track");
+                try
+                {
+                    missionTrack = null;
 
-                speaker.Speak("Loaded file " + missionTrack.Count + " trackpoints");
+                    // Load stored waypoints:
+                    // on the PC, from   C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+                    //            RPi:   \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState
+                    Track track = SerializableStorage<Track>.Load(savedTrackFileName).Result;
 
+                    if (track != null)
+                    {
+                        missionTrack = track;
+                        speaker.Speak("Loaded file " + missionTrack.Count + " trackpoints");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    speaker.Speak("could not load saved track file");
+                }
+
+                if(missionTrack == null)
+                {
+                    speaker.Speak("failed to load saved track file");
+                    missionTrack = new Track();
+                }
                 nextWp = missionTrack.nextTargetWp;
             }
-            catch (Exception ex)
+            else
             {
-                speaker.Speak("could not load track file");
+                speaker.Speak("Loading file " + trackFileName);
+
+                missionTrack = new Track();
+
+                try
+                {
+                    missionTrack.Init(trackFileName);
+
+                    speaker.Speak("Loaded file " + missionTrack.Count + " trackpoints");
+
+                    nextWp = missionTrack.nextTargetWp;
+                }
+                catch (Exception ex)
+                {
+                    speaker.Speak("could not load planned track file");
+                }
             }
         }
 
         #region Behavior logic
 
-            /// <summary>
-            /// Computes goalBearingDegrees based on current location and the next trackpoint
-            /// </summary>
-            /// <returns></returns>
+        /// <summary>
+        /// Computes goalBearingDegrees based on current location and the next trackpoint
+        /// </summary>
+        /// <returns></returns>
         public override IEnumerator<ISubsumptionTask> Execute()
         {
             FiredOn = true;
@@ -161,7 +197,7 @@ namespace slg.Behaviors
                             double maxVelocityMSec = ToVelocity(behaviorData.robotState.powerLevelPercent);  // m/sec                    
                             double timeToReachSec = distToWp.Meters / maxVelocityMSec;
                             nextWp.estimatedTimeOfArrival = DateTime.Now.AddSeconds(timeToReachSec);
-                            speaker.Speak("Next trackpoint " + Math.Round(distToWp.Meters) + " away. I expect reaching it in " + Math.Round(timeToReachSec) + " seconds");
+                            speaker.Speak("Next trackpoint " + Math.Round(distToWp.Meters) + " meters away. I expect reaching it in " + Math.Round(timeToReachSec) + " seconds");
                         }
                     }
 
@@ -169,6 +205,8 @@ namespace slg.Behaviors
                 }
 
                 speaker.Speak("No more trackpoints");
+                goalBearingRelativeDegrees = null;      // BehaviorGoToAngle will stop the robot
+                goalDistanceMeters = null;
             }
 
             FiredOn = false;

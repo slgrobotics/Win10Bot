@@ -37,7 +37,7 @@ namespace slg.ArduinoRobotHardware.Sensors
         protected int lastValue;
 
         public AnalogSensor(CommunicationTask cTask, CancellationToken ct, int si, AnalogPinId p, int vct)
-            : base(cTask, ct, si)
+            : base("AnalogSensor", cTask, ct, si)
         {
             pin = p;
             valueChangedThreshold = vct;

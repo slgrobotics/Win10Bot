@@ -106,7 +106,8 @@ namespace slg.ArduinoRobotHardware
 
         public IDifferentialMotorController produceDifferentialMotorController()
         {
-            return new DifferentialMotorController(commTask, tokenSource.Token, 1000);
+            //return new DifferentialMotorController(commTask, tokenSource.Token, 1000);
+            return new DifferentialMotorControllerT(commTask, tokenSource.Token, 200);
         }
 
         #endregion // Sensors and Controllers factories

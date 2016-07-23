@@ -19,6 +19,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
+
 using slg.LibRobotMath;
 
 namespace slg.LibMapping
@@ -58,19 +60,23 @@ namespace slg.LibMapping
         string ToStringExact();
     }
 
+    [DataContract]
     public class GeoPosition : IGeoPosition, ICloneable
     {
         public const double EARTH_RADIUS = 6371000.0d;		// meters
 
         private double m_X;
+        [DataMember]
         public double Lng { get { return m_X; } set { m_X = value; } }
         //public double X { get { return m_X; } set { m_X = value; } }
 
         private double m_Y;
+        [DataMember]
         public double Lat { get { return m_Y; } set { m_Y = value; } }
         //public double Y { get { return m_Y; } set { m_Y = value; } }
 
         private double m_H;	// elevation, meters
+        [DataMember]
         public double Elev { get { return m_H; } set { m_H = value; } }
         //public double H { get { return m_H; } set { m_H = value; } }
         //public double Z { get { return m_H; } set { m_H = value; } }

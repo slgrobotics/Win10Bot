@@ -30,7 +30,7 @@ namespace slg.ArduinoRobotHardware.Sensors
         public int Yaw { get; set; }    // -180..+180
 
         public MotionPlug(CommunicationTask cTask, CancellationToken ct, int si)
-            : base(cTask, ct, si)
+            : base("MotionPlug", cTask, ct, si)
         {
             Start();
         }
