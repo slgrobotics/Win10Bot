@@ -33,3 +33,4 @@ The code is published under Apache License, Version 2.0 - this is a no-warranty 
 
 Have fun and feel free to provide feedback,
 - Sergei Grichine   ( slg at quakemap.com )
+
