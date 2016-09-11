@@ -168,7 +168,7 @@ namespace slg.LibSensors
 
         public bool IsTargetingCameraDataValid()
         {
-            return (double)(DateTime.Now.Ticks - TargetingCameraTimestamp) / (double)TimeSpan.TicksPerSecond < 1.0d;
+            return (((double)(DateTime.Now.Ticks - TargetingCameraTimestamp)) / ((double)TimeSpan.TicksPerSecond)) < 1.0d;
         }
 
         public override string ToString()

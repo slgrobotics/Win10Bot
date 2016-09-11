@@ -124,6 +124,23 @@ namespace slg.RobotBase
             {
                 do
                 {
+                    // this works on a PC but not or RPi:
+                    //StringBuilder request = new StringBuilder();
+                    //DataReader reader = new DataReader(socket.InputStream);
+                    //reader.InputStreamOptions = InputStreamOptions.Partial;
+                    //uint bytesRead = await reader.LoadAsync(BufferSize);  // reads what is available
+                    //string strRead = reader.ReadString(reader.UnconsumedBufferLength);  // convert data to string
+                    //request.Append(strRead);
+
+                    //bytesRead = await reader.LoadAsync(BufferSize);  // reads a certain size of data
+                    //if (bytesRead > 0)
+                    //{
+                    //    strRead = reader.ReadString(reader.UnconsumedBufferLength);  // get the string
+                    //    request.Append(strRead);
+                    //}
+
+                    /*
+                     * original version - works on PC and RPi: */
                     // this works for text only
                     StringBuilder request = new StringBuilder();
                     IInputStream input = socket.InputStream;
@@ -134,11 +151,13 @@ namespace slg.RobotBase
                         uint dataRead = BufferSize;
                         while (dataRead == BufferSize)
                         {
+                            await Task.Delay(100);
                             IBuffer buf = await input.ReadAsync(buffer, BufferSize, InputStreamOptions.Partial);
                             request.Append(Encoding.UTF8.GetString(data, 0, (int)buffer.Length));
                             dataRead = buffer.Length;
                         }
                     }
+                    /* */
 
                     if (request.Length > 0)
                     {
@@ -189,6 +208,20 @@ namespace slg.RobotBase
                                     //                                                   <== this is empty line
                                     //  foo=foovalue&bar=barvalue
 
+                                    // parse Content-Length
+                                    int contentLength = 0;
+
+                                    foreach(string s in split)
+                                    {
+                                        if(s.StartsWith("Content-Length:"))
+                                        {
+                                            string[] clSplit = s.Split(new char[] { ':' });
+                                            contentLength = int.Parse(clSplit[1].Trim());
+                                            break;
+                                        }
+                                    }
+
+                                    // post data follows empty line:
                                     List<string> splitList = split.ToList();
                                     int i = splitList.IndexOf("");
                                     //string postData = splitList[i+1];   // foo=foovalue&bar=barvalue
@@ -198,7 +231,34 @@ namespace slg.RobotBase
                                     {
                                         sb.AppendLine(splitList[i]);
                                     }
-                                    string postData = sb.ToString();
+                                    string postData = sb.ToString().Trim();
+
+                                    // when using jQuery and Bootstrap-select, post data might come separate from the header:
+                                    if (contentLength > postData.Length)
+                                    {
+                                        Debug.WriteLine("HttpServerBase: POST second read: contentLength=" + contentLength + "  postData.Length=" + postData.Length);
+                                        
+                                        // this works on a PC but not or RPi:
+                                        //bytesRead = await reader.LoadAsync((uint)contentLength);  // reads a certain size of data
+                                        //if (bytesRead > 0)
+                                        //{
+                                        //    postData = reader.ReadString(reader.UnconsumedBufferLength);  // get the string
+                                        //}
+
+                                        // this works on RPi:
+                                        {
+                                            byte[] data = new byte[BufferSize];
+                                            IBuffer buffer = data.AsBuffer();
+                                            uint dataRead = BufferSize;
+                                            while (dataRead == BufferSize)
+                                            {
+                                                await Task.Delay(100);
+                                                IBuffer buf = await input.ReadAsync(buffer, BufferSize, InputStreamOptions.Partial);
+                                                postData += Encoding.UTF8.GetString(data, 0, (int)buffer.Length);
+                                                dataRead = buffer.Length;
+                                            }
+                                        }
+                                    }
 
                                     await WritePOSTResponseAsync(localPath, socket, keepAlive, postData);
                                 }
@@ -234,34 +294,116 @@ namespace slg.RobotBase
         {
             string html = await GetPageContent(localPath, null);
 
-            await WritePageContent(socket, html, keepAlive);
+            DateTime? lastModifiedUtc = getLastModifiedUtc(localPath);
+            string contentType = getContentType(localPath);
+
+            await WritePageContent(socket, html, lastModifiedUtc, contentType, keepAlive, canBeCached(localPath));
         }
 
         private async Task WritePOSTResponseAsync(string localPath, StreamSocket socket, bool keepAlive, string postData)
         {
             string html = await GetPageContent(localPath, postData);
 
-            await WritePageContent(socket, html, keepAlive);
+            DateTime? lastModifiedUtc = getLastModifiedUtc(localPath);
+            string contentType = getContentType(localPath);
+
+            await WritePageContent(socket, html, lastModifiedUtc, contentType, keepAlive, canBeCached(localPath));
         }
 
-        private string headerKeepAliveFormat = "HTTP/1.1 200 OK\r\nContent-Length: {0}\r\nConnection: Keep-Alive\r\nKeep-Alive:timeout=5, max=100\r\nCache-Control: no-cache, no-store, must-revalidate\r\n\r\n";
-        private string headerFormat = "HTTP/1.1 200 OK\r\nContent-Length: {0}\r\nConnection: close\r\n\r\n";
+        private bool canBeCached(string localPath)
+        {
+            return localPath.EndsWith(".css") || localPath.EndsWith(".js");
+        }
 
-        private async Task WritePageContent(StreamSocket socket, string html, bool keepAlive)
+        /// <summary>
+        /// to enable browser caching, provided Last Modified UTC date for selected folders only
+        /// </summary>
+        /// <param name="localPath"></param>
+        /// <returns></returns>
+        private DateTime? getLastModifiedUtc(string localPath)
+        {
+            if (!String.IsNullOrWhiteSpace(localPath) &&
+                (localPath.Contains("Content/") 
+                || localPath.Contains("Scripts/") 
+                || localPath.Contains("fonts/")
+                || localPath.Contains("favicon.ico")
+                ))
+            {
+                FileInfo fi = new FileInfo(getPagePath(localPath));
+                if (fi.Exists)
+                {
+                    return fi.LastWriteTimeUtc;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// gets file system path for a page
+        /// </summary>
+        /// <param name="localPath"></param>
+        /// <returns></returns>
+        public String getPagePath(string localPath)
+        {
+            string workDir = Directory.GetCurrentDirectory() + @"\slg.DisplayWebServer\Web";
+            // something like this: C:\Projects\Win10\Win10Bot\RobotPlucky\bin\x64\Debug\AppX\slg.DisplayWebServer\Web
+            // make sure your HTML, css and js files are all marked "Copy Always".
+
+            if (localPath.StartsWith("/"))
+            {
+                localPath = localPath.Substring(1);
+            }
+            return Path.Combine(workDir, String.IsNullOrWhiteSpace(localPath) ? "Default.html" : localPath);
+        }
+
+        /// <summary>
+        /// guesses content type based on file extension
+        /// </summary>
+        /// <param name="localPath"></param>
+        /// <returns></returns>
+        private string getContentType(string localPath)
+        {
+            if(localPath.EndsWith(".js"))
+            {
+                return "application/x-javascript";
+            }
+            else if(localPath.EndsWith(".css"))
+            {
+                return "text/css";
+            }
+            else if (localPath.EndsWith(".ico"))
+            {
+                return "image/x-icon";
+            }
+            else
+                return "text/html";
+        }
+
+        /// <summary>
+        /// Writes page content back to socket
+        /// </summary>
+        /// <param name="socket"></param>
+        /// <param name="html"></param>
+        /// <param name="lastModifiedUtc"></param>
+        /// <param name="contentType"></param>
+        /// <param name="keepAlive"></param>
+        /// <param name="canBeCached"></param>
+        /// <returns></returns>
+        private async Task WritePageContent(StreamSocket socket, string html, DateTime ? lastModifiedUtc, string contentType, bool keepAlive, bool canBeCached)
         {
             // respond with the html:
             IOutputStream output = socket.OutputStream;
             //using (IOutputStream output = socket.OutputStream)   -- cannot close anything in Keep-Alive mode
             {
                 //using (Stream resp = output.AsStreamForWrite())   -- cannot use this, will be blocked on Dispose()
-                Stream respStream = output.AsStreamForWrite();
+                Stream respStream = output.AsStreamForWrite(262144);    // 256K for uninterrupted send of most sizes
                 {
                     //resp.WriteTimeout = 1000;    // milliseconds  -- does not work here
 
                     // Look in the Data subdirectory of the app package
                     byte[] bodyArray = Encoding.UTF8.GetBytes(html);
                     MemoryStream stream = new MemoryStream(bodyArray);
-                    string header = String.Format(keepAlive ? headerKeepAliveFormat : headerFormat, stream.Length);
+                    string header = generateHeader(lastModifiedUtc, contentType, stream.Length, keepAlive, canBeCached);
                     byte[] headerArray = Encoding.UTF8.GetBytes(header);
 
                     await respStream.WriteAsync(headerArray, 0, headerArray.Length, tokenSource.Token);
@@ -274,6 +416,61 @@ namespace slg.RobotBase
             {
                 output.Dispose();
             }
+        }
+
+        /// <summary>
+        /// generates HTTP Response Header based on options provided
+        /// </summary>
+        /// <param name="lastModifiedUtc"></param>
+        /// <param name="contentType"></param>
+        /// <param name="contentLength"></param>
+        /// <param name="keepAlive"></param>
+        /// <param name="canBeCached"></param>
+        /// <returns></returns>
+        private string generateHeader(DateTime? lastModifiedUtc, string contentType, long contentLength, bool keepAlive, bool canBeCached)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            /*
+                HTTP/1.1 200 OK
+                Content-Type: application/x-javascript
+                Last-Modified: Sat, 06 Aug 2016 20:55:34 GMT
+                Accept-Ranges: bytes
+                ETag: "cb5276e024f0d11:0"
+                Server: Microsoft-IIS/10.0
+                X-Powered-By: ASP.NET
+                Date: Sun, 07 Aug 2016 06:23:01 GMT
+                Content-Length: 86351
+             */
+            sb.Append("HTTP/1.1 200 OK\r\n");
+            sb.AppendFormat("Content-Type: {0}\r\n", contentType);
+            if (lastModifiedUtc.HasValue)
+            {
+                // we need to send this to allow browser's caching to work:
+                sb.AppendFormat("Last-Modified: {0}\r\n", lastModifiedUtc.Value.ToString("r")); // RFC1123 date
+            }
+            sb.Append("Accept-Ranges: none\r\n");   // we don't support ranges
+            sb.Append("Server: SLG Robotics .NET Custom\r\n");
+            sb.AppendFormat("Content-Length: {0}\r\n", contentLength);
+
+            if (keepAlive)
+            {
+                sb.Append("Connection: Keep-Alive\r\n");
+                sb.Append("Keep-Alive:timeout=5, max=100\r\n");
+            }
+            else
+            {
+                sb.Append("Connection: close\r\n");
+            }
+
+            if (!canBeCached)
+            {
+                sb.Append("Cache-Control: no-cache, no-store, must-revalidate\r\n");
+            }
+
+            sb.Append("\r\n");
+
+            return sb.ToString();
         }
 
         #endregion // GET and POST Response

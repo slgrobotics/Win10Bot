@@ -91,24 +91,17 @@ namespace slg.DisplayWebServer
                 return(localPath.Substring(2));
             }
 
-            string workDir = Directory.GetCurrentDirectory() + @"\slg.DisplayWebServer\Web";
-            // something like this: C:\Projects\Win10\Win10Bot\RobotPlucky\bin\x64\Debug\AppX\slg.DisplayWebServer\Web
-            // make sure your HTML, css and js files are all marked "Copy Always".
-
-            if (localPath.StartsWith("/"))
-            {
-                localPath = localPath.Substring(1);
-            }
-            string pagePath = Path.Combine(workDir, String.IsNullOrWhiteSpace(localPath) ? "Default.html" : localPath);
-
             string pageContent = string.Empty;
+            string pagePath = getPagePath(localPath);
 
             if (File.Exists(pagePath))
             {
+                // have ASP.cs produce content, by reading the file and interpreting tags:
                 pageContent = asp.InterpretAspTags(File.ReadAllText(pagePath));
             }
             else
             {
+                // produce error message:
                 pageContent = string.Format(HtmlErrorStringFormat, localPath);
             }
             return pageContent;

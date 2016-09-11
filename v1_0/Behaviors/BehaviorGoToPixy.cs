@@ -126,6 +126,7 @@ namespace slg.Behaviors
                     yield return RobotTask.Continue;
                 }
 
+                goalBearingRelativeDegrees = null;      // stop
                 //speaker.Speak("Lost colored object");
                 speaker.Speak("Lost");
                 //Debug.WriteLine("BehaviorGoToPixy: Lost colored object");

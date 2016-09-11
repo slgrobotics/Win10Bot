@@ -41,6 +41,10 @@ html, body {
     margin-top: 10px;
 }
 
+.marginleft {
+    margin-left: 10px;
+}
+
 .extratop {
     margin-top: 4px;
     margin-bottom: 2px;

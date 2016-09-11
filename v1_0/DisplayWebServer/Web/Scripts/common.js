@@ -26,6 +26,27 @@ function serverTimeLoader() {
     mytime = setTimeout('serverTimeLoader();', refresh)
 }
 
+function errorsDataLoader() {
+    $.ajax({
+        url: "/ErrorsData",
+        timeout: 1000,
+        type: "get",
+        success: function (result) {
+            $("#errorsPanel").html(result);
+        },
+        error: function (request, status, err) {
+            if (status == "timeout") {
+                $("#errorsPanel").text("server not reached - timeout");
+            } else {
+                $("#errorsPanel").text("server not reached: " + err + " status: " + status);
+            }
+        }
+    });
+
+    var refresh = 2000; // milliseconds
+    mytime = setTimeout('errorsDataLoader();', refresh)
+}
+
 function joystickDataLoader() {
     $.ajax({
         url: "/JoystickData",

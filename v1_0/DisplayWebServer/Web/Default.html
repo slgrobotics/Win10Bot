@@ -5,7 +5,10 @@
     <title>Robot UI - Connected</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="Scripts/jquery-2.2.3.min.js" type="text/javascript"></script>
+    <!-- meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" / -->
+    <script src="Scripts/jquery-3.1.0.min.js" type="text/javascript"></script>
     <script src="Scripts/bootstrap.min.js" type="text/javascript"></script>
     <script src="Scripts/common.js" type="text/javascript"></script>
     <link href="/Content/bootstrap.min.css" rel="stylesheet">
@@ -24,6 +27,7 @@
         robotStateLoader();
         sensorsDataLoader();
         joystickDataLoader();
+        errorsDataLoader();
     </script>
 </head>
 <body class="body-connected">
@@ -39,6 +43,13 @@
                         <li>
                             <form method="post" action="Disconnect" id="formDisconnect">
                                 <input type="submit" name="btnDisconnect" value="Disconnect" class="btn btn-default moretop">
+                            </form>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav marginleft">
+                        <li>
+                            <form method="get" id="formRefresh">
+                                <input type="button" onclick="location.href='/'" name="btnRefresh" value="Refresh" class="btn btn-default moretop">
                             </form>
                         </li>
                     </ul>
@@ -71,6 +82,12 @@
                 <div class="panel-heading">Robot State:</div>
                 <div class="panel-body lead" id="robotStatePanel">
                     <!-- robotStateLoader() AJAX response here-->
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">Errors:</div>
+                <div class="panel-body lead" id="errorsPanel">
+                    <!-- errorsDataLoader() AJAX response here-->
                 </div>
             </div>
         </div>

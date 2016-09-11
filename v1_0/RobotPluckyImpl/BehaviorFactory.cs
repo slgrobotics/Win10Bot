@@ -246,19 +246,19 @@ namespace slg.RobotPluckyImpl
                     {
                         name = "BehaviorStop",
                         speaker = this.speaker,
-                        tresholdStopMeters = 0.6d,
+                        tresholdStopMeters = 0.8d,
                         //BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd); }
                         //BehaviorActivateCondition = bd => { return false; }
                     });
 
-                    subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
-                    {
-                        name = "Escape",
-                        speaker = this.speaker,
-                        BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
-                        BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
-                        BehaviorTerminateCondition = bd => { return false; }   // do not terminate
-                    });
+                    //subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
+                    //{
+                    //    name = "Escape",
+                    //    speaker = this.speaker,
+                    //    BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                    //    BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
+                    //    BehaviorTerminateCondition = bd => { return false; }   // do not terminate
+                    //});
 
                     break;
 

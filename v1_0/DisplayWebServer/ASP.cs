@@ -60,7 +60,7 @@ namespace slg.DisplayWebServer
             pageFinal.Replace("<%=DateTime.Now%>", DateTime.Now.ToString());
 
             // Connect tag:
-            pageFinal.Replace("<%=ConnectSelector%>", server.robot == null ? ExpandOpenTag() : "");
+            pageFinal.Replace("<%=ConnectSelector%>", server.robot == null ? ExpandOpenConnectionTag() : "");
 
             // robot state, sensors etc.:
             if (server.robot != null)
@@ -73,13 +73,15 @@ namespace slg.DisplayWebServer
             return pageFinal.ToString();
         }
 
-        public string ExpandOpenTag()
+        private string ExpandOpenConnectionTag()
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("<select name='serialportid' class='selectpicker' data-style='btn-primary'>");
+            int i = 0;
             foreach(SerialPortTuple port in server.serialPorts)
             {
-                sb.AppendFormat("<option value='{0}'>{1}</option>", port.Id, port.Name);
+                sb.AppendFormat("<option value='{0}'>{1}</option>", i, port.Name);
+                i++;
             }
             sb.AppendLine("</select>");
             return sb.ToString();

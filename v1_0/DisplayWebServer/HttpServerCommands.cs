@@ -64,16 +64,28 @@ namespace slg.DisplayWebServer
                 switch (localPath.Replace("/", ""))
                 {
                     case "Connect":  // comes from OpenConnection.html
-                                     // postData contains device ID, URL-encoded, with whitespace at the end:
-                                     //      serialportid=%5C%5C%3F%5CBTHENUM%23%7B00001101-0000-1000-8000-00805f9b34fb%7D_LOCALMFG%26000f%238%26145bd395%260%26001153070031_C00000000%23%7B86e0d1e0-8089-11d0-9ce4-08003e301f73%7D
+                                     // postData contains index of device ID, URL-encoded, with whitespace at the end:
+                                     //      serialportid=2
                         if (postData.TrimStart().StartsWith("serialportid=", StringComparison.OrdinalIgnoreCase))
                         {
-                            postData = postData.Split(new char[] { '&' })[0].Trim();    // first pair is "serialPortId=..."
-                            string serialPortId = WebUtility.UrlDecode(postData.Split(new char[] { '=' })[1]).Trim();
-                            if (await deviceOpener.OpenDevice(serialPortId))
+                            try
                             {
-                                await Task.Delay(5000); // wait a bit to have the page sense the connected state and refresh to Default.html
+                                postData = postData.Split(new char[] { '&' })[0].Trim();    // first pair is "serialPortId=..."
+                                string serialPortIndexStr = WebUtility.UrlDecode(postData.Split(new char[] { '=' })[1]).Trim();
+                                string serialPortId = this.serialPorts[int.Parse(serialPortIndexStr)].Id;
+                                if (await deviceOpener.OpenDevice(serialPortId))
+                                {
+                                    await Task.Delay(5000); // wait a bit to have the page sense the connected state and refresh to Default.html
+                                }
                             }
+                            catch
+                            {
+                                Debug.WriteLine("Error: HttpServer: TryParseCommand(): bad POST data: '" + postData + "'");
+                            }
+                        }
+                        else
+                        {
+                            Debug.WriteLine("Error: HttpServer: TryParseCommand(): wrong POST data, expecting 'serialportid='  got: '" + postData + "'");
                         }
                         localPath = null;   // will figure it out
                         break;
@@ -104,6 +116,10 @@ namespace slg.DisplayWebServer
 
                     case "SensorsData":  // AJAX call
                         localPath = "##" + GetSensorsDataHTML();
+                        break;
+
+                    case "ErrorsData":  // AJAX call
+                        localPath = "##" + GetErrorsDataHTML();
                         break;
 
                     case "Command":  // comes from Default.html
@@ -163,6 +179,19 @@ namespace slg.DisplayWebServer
         }
 
         #endregion // Sensors Data
+
+        #region Errors Data
+
+        private string GetErrorsDataHTML()
+        {
+            string ret = "here are all the errors!\nAnd more!\r\n" + DateTime.Now;
+            
+            // string ret = robot == null || robot.robotState == null ? "no data" : robot.currentErrorsData.ToString();
+
+            return wrapP(ret.Replace("\n", "    "));
+        }
+
+        #endregion // Errors Data
 
         private string wrapP(string html)
         {

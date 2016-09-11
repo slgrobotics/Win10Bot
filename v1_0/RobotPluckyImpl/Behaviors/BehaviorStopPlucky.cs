@@ -58,16 +58,16 @@ namespace slg.RobotPluckyImpl.Behaviors
                 }
                 else
                 {
-                    escapeRecommendation = "Escape";    // random turn
+                    escapeRecommendation = "Escape";    // advise random turn
                 }
 
-                return true;
+                return true;    // activate stop, with escape recommendation
             }
 
             if (velocity < 0.0d && (sensorsData.IrRearMeters < adjustedTresholdStopMeters))
             {
                 escapeRecommendation = "EscapeForward";
-                return true;
+                return true;    // activate stop, with escape recommendation
             }
 
             //if (velocity == 0.0d && behaviorData.driveInputs.omega == 0.0d)
@@ -93,10 +93,10 @@ namespace slg.RobotPluckyImpl.Behaviors
             //        escapeRecommendation = "EscapeNone";
             //    }
 
-            //    return true;
+            //    return true;    // activate stop, with escape recommendation
             //}
 
-            return false;
+            return false;    // deactivate, no stopping and no escape recommendation
         }
     }
 }
