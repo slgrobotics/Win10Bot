@@ -4,11 +4,19 @@ void InitializeI2c()
   //Fastwire::setup(400, 0);
 }
 
+double lastCompassYaw = 0.0;
+
 void receiveI2cCompassPacket()
 {
   // see C:\Projects\Arduino\Sketchbook\MotionPlug
 
   compassYaw = mympu.ypr[0];  // -180.0,180.0
+
+  if(lastCompassYaw != compassYaw)
+  {
+    lastCompassYaw = compassYaw;
+    lastImu = millis();
+  }
 }
 
 void receiveI2cSonarPacket()
@@ -64,6 +72,7 @@ void receiveI2cSonarPacket()
 //    Serial.print(rangeBLcm);
 //    Serial.print(" ");
 //    Serial.println(checksum);
+    lastSonar = millis();
   }
   else
   {

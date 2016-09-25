@@ -42,8 +42,15 @@ void leftEncoder()
   // we spend around 10us in the interrupt, at approx 1kHz frequency at pwm=80
   
   //boolean vi = (PIND & _BV(PIND3)) == 0; // read pin D3 (PD3)   - works for UNO 
+#ifdef ALFS_HBRIDGE
   boolean vi = digitalReadFast(motors.ENCODER_A_A) == LOW;
   boolean vd = digitalReadFast(motors.ENCODER_B_A) == LOW;
+#endif // ALFS_HBRIDGE
+
+#ifdef DIRPWM_HBRIDGE
+  boolean vi = digitalReadFast(ENCODER_A_A) == LOW;
+  boolean vd = digitalReadFast(ENCODER_B_A) == HIGH;
+#endif // DIRPWM_HBRIDGE
   
   if(vi == vd)
   {
@@ -58,8 +65,16 @@ void rightEncoder()
   // we spend around 10us in the interrupt, at approx 1kHz frequency at pwm=80
   
   //boolean vi = (PIND & _BV(PIND2)) == 0; // read pin D2 (PD2)   - works for UNO
+  
+#ifdef ALFS_HBRIDGE
   boolean vi = digitalReadFast(motors.ENCODER_A_B) == LOW;
   boolean vd = digitalReadFast(motors.ENCODER_B_B) == HIGH;
+#endif // ALFS_HBRIDGE
+
+#ifdef DIRPWM_HBRIDGE
+  boolean vi = digitalReadFast(ENCODER_A_B) == LOW;
+  boolean vd = digitalReadFast(ENCODER_B_B) == HIGH;
+#endif // DIRPWM_HBRIDGE
   
   if(vi == vd)
   {

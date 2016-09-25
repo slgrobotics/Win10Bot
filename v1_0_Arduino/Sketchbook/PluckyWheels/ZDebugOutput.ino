@@ -45,6 +45,8 @@ void printAll()
       Serial.print(speedMeasured_L);
       Serial.print("       dpwm_L: ");
       Serial.print(dpwm_L);
+      Serial.print("       distL: ");
+      Serial.print(distL);
       Serial.print("       desiredSpeedL: ");
       Serial.println(desiredSpeedL);
 

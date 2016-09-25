@@ -1,11 +1,17 @@
 
+long distR;
+long distL;
+
+// speed control is based on measuring ticks per cycle (say, 100ms), scaling to 100% and feeding it to PID which has a setting of 0...100 also in %
+// for a drive configuration (particular robot) we need to measure ticks per cycle when on full power and wheels in the air.
+
 void speed_calculate()
 {
-  long distR = Rdistance - RdistancePrev; // around 270- 300 with 20Hz cycle and wheels in the air
-  long distL = Ldistance - LdistancePrev;
+  distR = Rdistance - RdistancePrev; // around 13 with 20Hz cycle, 65 with 10Hz cycle, full power and wheels in the air
+  distL = Ldistance - LdistancePrev;
 
-  speedMeasured_R = map(distR, -110, 110, -100, 100);  // first pair is number of ticks at full speed, we map it to 100%
-  speedMeasured_L = map(distL, -110, 110, -100, 100);
+  speedMeasured_R = map(distR, -65, 65, -100, 100);  // first pair is number of ticks at full speed, we map it to 100%
+  speedMeasured_L = map(distL, -65, 65, -100, 100);
 
   RdistancePrev = Rdistance;
   LdistancePrev = Ldistance;
