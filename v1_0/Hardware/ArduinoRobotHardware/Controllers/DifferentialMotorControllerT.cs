@@ -120,6 +120,7 @@ namespace slg.ArduinoRobotHardware.Controllers
                         // both left and right sides values have changed
                         int checksum = -(1 + rms + 2 + lms);
                         string cmd = "pwm 1:" + rms + " 2:" + lms + " c" + checksum;
+                        //Debug.WriteLine(cmd);
                         string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
                         if (String.IsNullOrWhiteSpace(resp) || !String.Equals("ACK", resp.Trim(), StringComparison.OrdinalIgnoreCase))
                         {
@@ -134,6 +135,7 @@ namespace slg.ArduinoRobotHardware.Controllers
                         // only left side value have changed
                         int checksum = -(2 + lms);
                         string cmd = "pwm 2:" + lms + " c" + checksum;
+                        //Debug.WriteLine(cmd);
                         string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
                         if (String.IsNullOrWhiteSpace(resp) || !String.Equals("ACK", resp.Trim(), StringComparison.OrdinalIgnoreCase))
                         {
@@ -147,6 +149,7 @@ namespace slg.ArduinoRobotHardware.Controllers
                         // only right side value have changed
                         int checksum = -(1 + rms);
                         string cmd = "pwm 1:" + rms + " c" + checksum;
+                        //Debug.WriteLine(cmd);
                         string resp = await commTask.SendAndReceive(cmd);   // should be "ACK"
                         if (String.IsNullOrWhiteSpace(resp) || !String.Equals("ACK", resp.Trim(), StringComparison.OrdinalIgnoreCase))
                         {

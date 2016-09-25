@@ -47,9 +47,9 @@ namespace slg.RobotPluckyImpl
     {
         #region Parameters
 
-        private const double WHEEL_RADIUS_METERS = 0.061d;           // actual measured 0.061d
-        private const double WHEEL_BASE_METERS = 0.345d;             // actual measured 0.328d
-        private const double ENCODER_TICKS_PER_REVOLUTION = 438.0d;  // ticks per one wheel rotation
+        private const double WHEEL_RADIUS_METERS = 0.192d;           // actual measured 
+        private const double WHEEL_BASE_METERS = 0.600d;             // actual measured 
+        private const double ENCODER_TICKS_PER_REVOLUTION = 853.0d;  // ticks per one wheel rotation
         private const int ODOMETRY_SAMPLING_INTERVAL_MS = 20;        // for hardware odometry working in Arduino
         private const int GPS_SAMPLING_INTERVAL_MS = 1000;           // for GPS processed in Arduino
 
@@ -132,7 +132,7 @@ namespace slg.RobotPluckyImpl
             robotState = new RobotState();
             robotPose = new RobotPose();
 
-            robotState.powerLevelPercent = 20;  // can be changed any time. Used by behaviors.
+            robotState.powerLevelPercent = 100;  // can be changed any time. Used by behaviors.
 
             robotPose.geoPosition.moveTo(lng, lat, elev);   // will be set to GPS coordinates, if available
             robotPose.direction.heading = headingDegrees;   // will be set to Compass Heading, if available
