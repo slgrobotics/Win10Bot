@@ -149,7 +149,7 @@ namespace slg.LibMapping
 
         public override string ToString()
         {
-            return string.Format("(h: {0}, b: {1})", heading, bearing);
+            return string.Format("(h: {0:0.0}, b: {1:0.0})", course, bearing);
         }
     }
 }

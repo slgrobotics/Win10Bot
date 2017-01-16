@@ -86,6 +86,12 @@ namespace slg.RobotBase.Bases
             ThetaRadians = 0.0d;
         }
 
+        public void reset()
+        {
+            resetXY();
+            resetRotation();
+        }
+
         /// <summary>
         /// performs translate->rotate operation on a cloned p1 and returns it
         /// example: p1 - robot pose in absolute coords, p2 - sensor pose relative to robot (in robot coords). p1 * p2 is sensor pose in absolute coords

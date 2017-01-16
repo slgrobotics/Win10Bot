@@ -176,10 +176,10 @@ namespace cmRobot.Element.Internal
 			EnqueueJob(priority, info);
 		}
 
-#endregion // Public Methods
+        #endregion // Public Methods
 
 
-#region Private Types
+        #region Private Types
 
         private class CommJobInfo
 		{
@@ -203,10 +203,10 @@ namespace cmRobot.Element.Internal
 			}
 		}
 
-#endregion // Private Types
+        #endregion // Private Types
 
 
-#region Private Methods
+        #region Private Methods
 
         private void EnqueueJob(Priority priority, CommJobInfo job)
 		{
@@ -359,6 +359,6 @@ namespace cmRobot.Element.Internal
             ClearJobQueues();
 		}
 
-#endregion // Private Methods
+        #endregion // Private Methods
     }
 }

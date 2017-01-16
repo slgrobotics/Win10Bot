@@ -163,6 +163,14 @@
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
+    <ProjectReference Include="..\LibSensors\LibSensors.csproj">
+      <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
+      <Name>LibSensors</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RobotAbstraction\RobotAbstraction.csproj">
+      <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>
+      <Name>RobotAbstraction</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RobotBase\RobotBase.csproj">
       <Project>{63d901ea-57a0-431b-a6ff-bea3850abefe}</Project>
       <Name>RobotBase</Name>

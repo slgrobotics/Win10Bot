@@ -115,10 +115,12 @@
   <ItemGroup>
     <Compile Include="BehaviorFactory.cs" />
     <Compile Include="Behaviors\BehaviorStopPlucky.cs" />
+    <Compile Include="JoystickCommandsPlucky.cs" />
     <Compile Include="PluckyTheRobot.cs" />
     <Compile Include="RobotPluckyHardwareBridge.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SensorsControllerPlucky.cs" />
+    <Compile Include="SensorsDataPlucky.cs" />
     <Content Include="Properties\RobotPluckyImpl.rd.xml" />
   </ItemGroup>
   <ItemGroup>

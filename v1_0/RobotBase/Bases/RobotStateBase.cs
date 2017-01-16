@@ -93,8 +93,8 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return String.Format("velocity={0} m/s ({1} cm/s)    omega={2} rad/s ({3} degrees/s)    power {4}    goal at: {5} abs / {6} rel degrees, {7} meters",
-                                  velocity, Math.Round(velocity * 100.0), omega, Math.Round(omega * 180.0d / Math.PI), powerLevelPercent,
+            return String.Format("velocity={0:0.00} m/s ({1:0.0} cm/s)    omega={2:0.00} rad/s ({3:0.0} degrees/s)    power {4}    goal at: {5:0.0} abs / {6:0.0} rel degrees, {7:0.00} meters",
+                                  velocity, velocity * 100.0, omega, Math.Round(omega * 180.0d / Math.PI, 1), powerLevelPercent,
                                   goalBearingDegrees, goalBearingRelativeDegrees, goalDistanceMeters);
         }
     }

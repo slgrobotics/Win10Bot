@@ -64,6 +64,7 @@ namespace slg.RobotShortyImpl
 
         // injected parameters:
         private IAbstractRobotHardware hardwareBrick { get; set; }
+        private ISpeaker speaker;
 
         private double mainLoopCycleMs;     // must be set when controller is created, to match main loop cycle
 
@@ -80,19 +81,24 @@ namespace slg.RobotShortyImpl
         //private I2CDevice Ahrs;
         private IAnalogSensor Ahrs;
 
-        private PixyCamera PixyCameraSensor;
+        private PixyCamera PixyCameraSensor = null; // may stay null if pixyComPort is null or empty
 
         /// <summary>
         /// all Ranger Sensors are in this list for easy access to Pose and min/max ranges from SensorsData:
         /// </summary>
         public Dictionary<string, IRangerSensor> RangerSensors = new Dictionary<string, IRangerSensor>();
 
-        public SensorsControllerShorty(IAbstractRobotHardware brick, double _mainLoopCycleMs)
+        public SensorsControllerShorty(IAbstractRobotHardware brick, double _mainLoopCycleMs, string pixyComPort, ISpeaker _speaker)
         {
             hardwareBrick = brick;
             mainLoopCycleMs = _mainLoopCycleMs;
+            speaker = _speaker;
 
-            //PixyCameraSensor = new PixyCamera("PixyCamera", "COM8", 115200);
+            if (!string.IsNullOrWhiteSpace(pixyComPort))
+            {
+                // See C:\Projects\Arduino\Sketchbook\PixyToSerial\PixyToSerial.ino
+                PixyCameraSensor = new PixyCamera("PixyCamera", pixyComPort, 115200);
+            }
         }
 
         /// <summary>
@@ -166,8 +172,19 @@ namespace slg.RobotShortyImpl
             //Ahrs.WriteCommand = "234";
             //Ahrs.ReadCommand = "6";
 
-            await PixyCameraSensor.Open(cts);
-            PixyCameraSensor.TargetingCameraTargetsChanged += PixyCameraSensor_PixyCameraBlocksChanged;
+            if (PixyCameraSensor != null)
+            {
+                try
+                {
+                    await PixyCameraSensor.Open(cts);
+                    PixyCameraSensor.TargetingCameraTargetsChanged += PixyCameraSensor_PixyCameraBlocksChanged;
+                }
+                catch (Exception exc)
+                {
+                    speaker.Speak("Could not open Pixy Camera at " + PixyCameraSensor.ComPortName);
+                    PixyCameraSensor = null;
+                }
+            }
 
             batteryVoltage = CreateBatteryVoltageMeter(hardwareBrick, batterySamplingIntervalMs, batterySensitivityThresholdVolts);
 
@@ -179,16 +196,21 @@ namespace slg.RobotShortyImpl
             //CompassEnabled = true;    // compass no good inside concrete buildings, use gyro instead
             CompassEnabled = false;
             Ahrs.Enabled = true;
-            PixyCameraSensor.Enabled = true;
-
-            currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
+            if (PixyCameraSensor != null)
+            {
+                PixyCameraSensor.Enabled = true;
+            }
+            currentSensorsData = new SensorsDataShorty() { RangerSensors = this.RangerSensors };
         }
 
         public void Close()
         {
             Debug.WriteLine("SensorsControllerElement: Close()");
-            PixyCameraSensor.TargetingCameraTargetsChanged -= PixyCameraSensor_PixyCameraBlocksChanged;
-            PixyCameraSensor.Close();
+            if (PixyCameraSensor != null)
+            {
+                PixyCameraSensor.TargetingCameraTargetsChanged -= PixyCameraSensor_PixyCameraBlocksChanged;
+                PixyCameraSensor.Close();
+            }
         }
 
         void PixyCameraSensor_PixyCameraBlocksChanged(object sender, TargetingCameraEventArgs args)
@@ -221,7 +243,7 @@ namespace slg.RobotShortyImpl
 
                 lock (currentSensorsDataLock)
                 {
-                    SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                    ISensorsData sensorsData = new SensorsDataShorty(this.currentSensorsData);
 
                     sensorsData.TargetingCameraBearingDegrees = bearing;
                     sensorsData.TargetingCameraInclinationDegrees = inclination;
@@ -259,7 +281,7 @@ namespace slg.RobotShortyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                ISensorsData sensorsData = new SensorsDataShorty(this.currentSensorsData);
                 sensorsData.CompassHeadingDegrees = heading;
                 //Debug.WriteLine(sensorsData.ToString());
 
@@ -279,7 +301,7 @@ namespace slg.RobotShortyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                ISensorsData sensorsData = new SensorsDataShorty(this.currentSensorsData);
                 sensorsData.CompassHeadingDegrees = heading;
                 //Debug.WriteLine(sensorsData.ToString());
 
@@ -313,7 +335,7 @@ namespace slg.RobotShortyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                ISensorsData sensorsData = new SensorsDataShorty(this.currentSensorsData);
 
                 switch (e.Name)
                 {
@@ -387,7 +409,7 @@ namespace slg.RobotShortyImpl
         {
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataShorty sensorsData = new SensorsDataShorty(this.currentSensorsData);
 
                 IAnalogSensor bv = sender as IAnalogSensor;
 
@@ -448,7 +470,7 @@ namespace slg.RobotShortyImpl
         {
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataShorty sensorsData = new SensorsDataShorty(this.currentSensorsData);
 
                 IWheelEncoder encoder = sender as IWheelEncoder;
 

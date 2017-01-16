@@ -158,6 +158,10 @@
       <Project>{b5dc5a77-3214-447d-93da-07d3a949f19f}</Project>
       <Name>LibRuntime</Name>
     </ProjectReference>
+    <ProjectReference Include="..\LibSensors\LibSensors.csproj">
+      <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
+      <Name>LibSensors</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RobotAbstraction\RobotAbstraction.csproj">
       <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>
       <Name>RobotAbstraction</Name>
@@ -170,6 +174,11 @@
       <Project>{c6987c0b-6676-4d69-a486-0132aa6d5817}</Project>
       <Name>RobotShortyImpl</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="WindowsIoT, Version=10.0.10586.0">
+      <Name>Windows IoT Extensions for the UWP</Name>
+    </SDKReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

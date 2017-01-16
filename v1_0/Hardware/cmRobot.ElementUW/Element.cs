@@ -406,11 +406,13 @@ namespace cmRobot.Element
 
         public IAnalogSensor produceAnalogSensor(slg.RobotAbstraction.Ids.AnalogPinId pin, int updateFrequency, double valueChangedThreshold)
         {
+            int iValueChangedThreshold = (int)valueChangedThreshold;
+
             return new AnalogSensor(this)
             {
                 Pin = pin,
                 UpdateFrequency = updateFrequency,              // milliseconds
-                ValueChangedThreshold = (int)valueChangedThreshold
+                ValueChangedThreshold = iValueChangedThreshold < 1 ? 1 : iValueChangedThreshold
             };
         }
 

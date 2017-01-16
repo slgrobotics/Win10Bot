@@ -45,6 +45,10 @@ namespace slg.LibMapping
         public TrackpointState trackpointState;
         [DataMember]
         public GeoPosition geoPosition;
+        [DataMember]
+        public double? headingDegrees;  // heading in this location
+        [DataMember]
+        public string comment;          // mostly for debugging
 
         public DateTime? estimatedTimeOfArrival;    // when we set to reach the waypoint, we estimate arrival
         public CoordinateFrameOption coordinateFrameOption;
@@ -53,7 +57,7 @@ namespace slg.LibMapping
         public double p3;				// param 3
         public double p4;				// param 4
 
-        public Trackpoint(int num, bool ishome, double latitude, double longtitude, double? altitude = null)
+        public Trackpoint(int num, bool ishome, double latitude, double longtitude, double? altitude = null, double? headingDegrees = null, string comment = null)
             : this(new Locationwp()
             {
                 id = (byte)MAV_CMD.WAYPOINT,
@@ -64,10 +68,12 @@ namespace slg.LibMapping
                 alt = altitude ?? 0.0d
             })
         {
+            this.headingDegrees = headingDegrees;
+            this.comment = comment;
         }
 
         /// <summary>
-        /// this constructor is used only for reading mission files
+        /// this constructor is used only for reading ardupilot mission files
         /// </summary>
         /// <param name="lw"></param>
         internal Trackpoint(Locationwp lw)

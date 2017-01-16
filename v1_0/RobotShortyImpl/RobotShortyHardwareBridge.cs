@@ -74,12 +74,6 @@ namespace slg.RobotShortyImpl
             hardwareBrick.CommunicationStarted += new HardwareComponentEventHandler(bridge_CommunicationStarted);
         }
 
-        public IDifferentialMotorController produceDifferentialMotorController()
-        {
-            IDifferentialMotorController dmc = new DifferentialMotorController((Element)hardwareBrick);
-            return dmc;
-        }
-
         protected async Task StartCommunication()
         {
             try

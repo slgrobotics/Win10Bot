@@ -16,25 +16,26 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Diagnostics;
 
+using slg.RobotAbstraction.Drive;
 using slg.LibRuntime;
-using slg.LibMapping;
-using slg.LibRobotExceptions;
-using slg.LibSensors;
-using slg.LibRobotDrive;
 using slg.RobotBase.Data;
 using slg.RobotBase.Bases;
 using slg.RobotBase.Interfaces;
-using slg.RobotAbstraction.Drive;
+using slg.LibRobotDrive;
 using slg.ControlDevices;
+using slg.LibSystem;
 using slg.Behaviors;
-using System.Threading;
+using slg.LibMapping;
+using slg.LibRobotExceptions;
+using slg.RobotAbstraction.Sensors;
 using slg.LibRobotSLAM;
+using slg.RobotBase;
 
 namespace slg.RobotShortyImpl
 {
@@ -42,13 +43,13 @@ namespace slg.RobotShortyImpl
     /// ShortyTheRobot implementation - headless (controller) class.
     /// All robot components should be instantiated here, main loop ticker will be called often.
     /// </summary>
-    public class ShortyTheRobot : RobotShortyHardwareBridge // IDisposable via AbstractRobot -> IRobotBase
+    public partial class ShortyTheRobot : RobotShortyHardwareBridge // IDisposable via AbstractRobot -> IRobotBase
     {
         #region Parameters
 
-        private const double WHEEL_RADIUS_METERS = 0.061d;           // actual measured 0.061d
-        private const double WHEEL_BASE_METERS = 0.345d;             // actual measured 0.328d
-        private const double ENCODER_TICKS_PER_REVOLUTION = 438.0d;  // ticks per one wheel rotation
+        private const double WHEEL_RADIUS_METERS = 0.0615d;          // actual measured diameter 0.123d
+        private const double WHEEL_BASE_METERS = 0.367d;             // actual measured 0.328d
+        private const double ENCODER_TICKS_PER_REVOLUTION = 430.0d;  // ticks per one wheel rotation 438
 
         /*
          * Some measurements: at motor controller input 100 (full speed) the wheels rotate at 130 rpm.
@@ -59,6 +60,8 @@ namespace slg.RobotShortyImpl
         // experimental scaling factors for turns and velocity:
         private const double SPEED_TO_VELOCITY_FACTOR = 0.0083d;    // speed -100..+100, velocity -0.83..+0.83 meters per second
         private const double TURN_TO_OMEGA_FACTOR = 0.046d;         // turn -100..+100,  omega 4.6..-4.6 radians per second, positive turn - right, positive omega - left
+
+        private string PIXY_COM_PORT = "COM3";  // if null or empty, we will skip Pixy Camera. See C:\Projects\Arduino\Sketchbook\PixyToSerial\PixyToSerial.ino
 
         #endregion // Parameters
 
@@ -74,8 +77,8 @@ namespace slg.RobotShortyImpl
         private ISensorsController sensorsController;
         private IDrive driveController;
         private IDriveGeometry driveGeometry;
-        private BehaviorFactory behaviorFactory;
         private IRobotSLAM robotSlam;
+        private BehaviorFactory behaviorFactory;
 
         private double lng = -117.671550d;
         private double lat = 33.600222d;
@@ -114,8 +117,8 @@ namespace slg.RobotShortyImpl
 
             joystick.joystickEvent += Joystick_joystickEvent;
 
-            sensorsController = new SensorsControllerShorty(hardwareBrick, loopTimeMs);
-            sensorsController.InitSensors(cts);
+            sensorsController = new SensorsControllerShorty(hardwareBrick, loopTimeMs, PIXY_COM_PORT, speaker);
+            await sensorsController.InitSensors(cts);
 
             InitDrive();
 
@@ -131,9 +134,9 @@ namespace slg.RobotShortyImpl
 
             robotPose.geoPosition.moveTo(lng, lat, elev);   // will be set to GPS coordinates, if available
             robotPose.direction.heading = headingDegrees;   // will be set to Compass Heading, if available
-            robotPose.resetXY();
+            robotPose.reset();
 
-            robotSlam = new RobotSLAM();
+            robotSlam = new RobotSLAM() { useOdometryHeading = true };
 
             await InitComm(cts);     // may throw exceptions
 
@@ -208,9 +211,9 @@ namespace slg.RobotShortyImpl
 
         private void InitDrive()
         {
-            IDifferentialMotorController dmc = produceDifferentialMotorController();
+            IDifferentialMotorController dmc = hardwareBrick.produceDifferentialMotorController();
 
-            IDifferentialDrive ddc = new DifferentialDrive(hardwareBrick)
+            driveController = new DifferentialDrive(hardwareBrick)
             {
                 wheelRadiusMeters = WHEEL_RADIUS_METERS,
                 wheelBaseMeters = WHEEL_BASE_METERS,
@@ -220,10 +223,10 @@ namespace slg.RobotShortyImpl
                 differentialMotorController = dmc
             };
 
-            driveController = ddc;
-            driveGeometry = ddc;
+            driveGeometry = (IDifferentialDrive)driveController;
 
             driveController.Init();
+            driveController.Enabled = true;
         }
 
         /// <summary>
@@ -235,7 +238,7 @@ namespace slg.RobotShortyImpl
             {
                 isClosing = true;
 
-                joystick.joystickEvent -= Joystick_joystickEvent;
+                //joystick.joystickEvent -= Joystick_joystickEvent;
 
                 // first close all higher levels (behaviors), while lower levels are still operational:
                 CloseRuntime();
@@ -244,10 +247,14 @@ namespace slg.RobotShortyImpl
 
                 // we can now close lower levels which we created. Communication to the board is still open:
                 sensorsController.Close();
-                Task.Factory.StartNew(driveController.Close);
+				//driveController.Close();
+                Task.Factory.StartNew(driveController.Close);   // sets PWM to 0
+                //Task.Delay(2000).Wait();
 
                 // wait a bit (pumping events) and stop communication with the Hardware Brick (i.e. Element board):
                 CloseCommunication().Wait();
+
+                hardwareBrick.Close();
             }
         }
 
@@ -257,95 +264,6 @@ namespace slg.RobotShortyImpl
         }
 
         #endregion // Lifecycle
-
-        #region Control Device command processing
-
-        /// <summary>
-        /// must return promptly
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="jss"></param>
-        private void Joystick_joystickEvent(object sender, IJoystickSubState jss)
-        {
-            jss.IsNew = false;
-            string command = jss.GetCommand();
-            if (!string.IsNullOrWhiteSpace(command))
-            {
-                //Debug.WriteLine("Joystick event: command: " + command);
-                this.ControlDeviceCommand(command);
-            }
-        }
-
-        /// <summary>
-        /// called once a second to open and maintain control devices, must return promptly.
-        /// </summary>
-        public override void ProcessControlDevices()
-        {
-        }
-
-        private string previousButtonCommand = string.Empty;
-
-        public override void ControlDeviceCommand(string command)
-        {
-            //Debug.WriteLine("ShortyTheRobot: ControlDeviceCommand: " + command);
-
-            bool isDispatcherCommand = true;   // if true, dispatcher will be forwarding command to behaviors
-
-            if (command.StartsWith("button") && previousButtonCommand != command)   // avoid button commands repetitions
-            {
-                if (command == "button4")
-                {
-                    Debug.WriteLine("ShortyTheRobot: ControlDeviceCommand: " + command);
-                    robotPose.resetXY();
-                    //robotPose.resetRotation();
-                    robotPose.direction = new Direction() { heading = currentSensorsData.CompassHeadingDegrees };
-                    driveController.OdometryReset();
-                    isDispatcherCommand = false;    // no need for further processing
-                    speaker.Speak("Reset X Y");
-                }
-                else if (command == "button1")
-                {
-                    Debug.WriteLine("ShortyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
-                    behaviorFactory.produce(BehaviorCompositionType.Escape);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak("Escape");
-                }
-                else if (command == "button5")
-                {
-                    Debug.WriteLine("ShortyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
-                    behaviorFactory.produce(BehaviorCompositionType.JoystickAndStop);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    speaker.Speak("Joystick control");
-                }
-                else if (command == "button6")
-                {
-                    Debug.WriteLine("ShortyTheRobot: ControlDeviceCommand: " + command);
-                    lastActiveTasksCount = -1;  // initiate reporting in MonitorDispatcherActivity()
-
-                    ComputeGoal();
-
-                    behaviorFactory.produce(BehaviorCompositionType.CruiseAndStop);
-                    //behaviorFactory.produce(BehaviorCompositionType.AroundTheBlock);
-                    isDispatcherCommand = false;    // no need for further command processing
-                    //speaker.Speak("Around The Block");
-                    speaker.Speak("Cruise control");
-                }
-
-                // buttons 7 and 8 on RamblePad2 reserved for throttle up/down control.
-
-                previousButtonCommand = command;
-            }
-
-            if (isDispatcherCommand)
-            {
-                // dispatcher will be forwarding command like "speed" to behaviors
-                subsumptionTaskDispatcher.ControlDeviceCommand(command);
-            }
-        }
-
-        #endregion // Control Device command processing
 
         #region Main Loop processing
 
@@ -448,7 +366,7 @@ namespace slg.RobotShortyImpl
 
                 if (dispatcherActiveTasksCount == 0)
                 {
-                    driveController.Stop(); // ensure the robot is stopped when all behaviors have exited
+                    this.SafePose(); // ensure the robot is stopped when all behaviors have exited
                     speaker.Speak("active tasks count zero");
                 }
                 else if (lastActiveTasksCount <= 0)
@@ -495,7 +413,7 @@ namespace slg.RobotShortyImpl
             robotState.goalDistanceMeters = 2.0d;
             robotState.computeGoalGeoPosition(robotPose);
 
-            robotPose.resetXY();
+            robotPose.reset();
             robotPose.direction = new Direction() { heading = currentSensorsData.CompassHeadingDegrees, bearingRelative = 0.0d, distanceToGoalMeters = 2.0d };
             driveController.OdometryReset();
         }

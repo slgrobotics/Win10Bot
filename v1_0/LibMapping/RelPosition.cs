@@ -32,8 +32,8 @@ namespace slg.LibMapping
     {
         // rectangular grid:
 
-        public double X;    // meters from the robot, forward is positive
-        public double Y;    // meters from the robot, left is positive
+        public double XMeters;    // meters from the robot, forward is positive
+        public double YMeters;    // meters from the robot, left is positive
 
         // angular system:
 
@@ -50,21 +50,21 @@ namespace slg.LibMapping
             {
                 double bearingRad = DirectionMath.toRad(direction.bearingRelative.Value);
 
-                X = distance.Meters * Math.Sin(bearingRad);
-                Y = -distance.Meters * Math.Cos(bearingRad);
+                XMeters = distance.Meters * Math.Sin(bearingRad);
+                YMeters = -distance.Meters * Math.Cos(bearingRad);
             }
             else if (direction.bearing.HasValue)
             {
                 double bearingRad = DirectionMath.toRad(direction.bearing.Value);
 
-                X = distance.Meters * Math.Sin(bearingRad);
-                Y = -distance.Meters * Math.Cos(bearingRad);
+                XMeters = distance.Meters * Math.Sin(bearingRad);
+                YMeters = -distance.Meters * Math.Cos(bearingRad);
             }
         }
 
         public override string ToString()
         {
-            return string.Format("({0},{1}):({2},{3})", X, Y, dist, dir);
+            return string.Format("({0},{1}):({2},{3})", XMeters, YMeters, dist, dir);
         }
 
         #region ICloneable Members

@@ -128,7 +128,7 @@ namespace slg.RobotPluckyImpl
             CompassEnabled = true;
             RPiCameraEnabled = true;
 
-            currentSensorsData = new SensorsData() { RangerSensors = this.RangerSensors };
+            currentSensorsData = new SensorsDataPlucky() { RangerSensors = this.RangerSensors };
         }
 
         public void Close()
@@ -173,7 +173,7 @@ namespace slg.RobotPluckyImpl
 
                 lock (currentSensorsDataLock)
                 {
-                    SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                    ISensorsData sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                     sensorsData.TargetingCameraBearingDegrees = bearing;
                     sensorsData.TargetingCameraInclinationDegrees = inclination;
@@ -197,7 +197,7 @@ namespace slg.RobotPluckyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                ISensorsData sensorsData = new SensorsDataPlucky(this.currentSensorsData);
                 sensorsData.CompassHeadingDegrees = heading;
                 //Debug.WriteLine(sensorsData.ToString());
 
@@ -216,7 +216,7 @@ namespace slg.RobotPluckyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                ISensorsData sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                 switch (e.Name)
                 {
@@ -276,7 +276,7 @@ namespace slg.RobotPluckyImpl
         {
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataPlucky sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                 IAnalogSensor bv = sender as IAnalogSensor;
 
@@ -340,7 +340,7 @@ namespace slg.RobotPluckyImpl
         {
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataPlucky sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                 IWheelEncoder encoder = sender as IWheelEncoder;
 
@@ -371,7 +371,7 @@ namespace slg.RobotPluckyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataPlucky sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                 sensorsData.WheelEncoderLeftTicks = odom.LDistanceTicks;
                 sensorsData.WheelEncoderRightTicks = odom.RDistanceTicks;
@@ -388,7 +388,7 @@ namespace slg.RobotPluckyImpl
 
             lock (currentSensorsDataLock)
             {
-                SensorsData sensorsData = new SensorsData(this.currentSensorsData);
+                SensorsDataPlucky sensorsData = new SensorsDataPlucky(this.currentSensorsData);
 
                 sensorsData.GpsLatitude = gps.Latitude;
                 sensorsData.GpsLongitude = gps.Longitude;

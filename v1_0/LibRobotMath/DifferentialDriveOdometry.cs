@@ -23,9 +23,9 @@ using System.Text;
 namespace slg.LibRobotMath
 {
     /// <summary>
-    /// returned values for Odometry calculations
+    /// returned values - specific for Odometry calculations
     /// </summary>
-    public class Displacement
+    public class DisplacementOdometry
     {
         public double dCenter = 0.0d;
         public double halfPhi = 0.0d;
@@ -70,11 +70,11 @@ namespace slg.LibRobotMath
         /// </summary>
         /// <param name="robotPose">will be adjusted based on wheels travel</param>
         /// <param name="encoderTicks">wheel encoder ticks - left, right...</param>
-        public Displacement Process(long[] encoderTicks)
+        public DisplacementOdometry Process(long[] encoderTicks)
         {
             #region estimate pose using wheel encoders and odometry formula
 
-            Displacement ret = new Displacement();
+            DisplacementOdometry ret = new DisplacementOdometry();
 
             long wheelEncoderLeftTicks = encoderTicks[0];
             long wheelEncoderRightTicks = encoderTicks[1];

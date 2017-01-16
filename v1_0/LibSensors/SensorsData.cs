@@ -26,6 +26,7 @@ namespace slg.LibSensors
     /// <summary>
     /// container for all data collected from sensors.
     /// Warning: "Timestamp" properties are updated when data changes, not when a valid reading comes in.
+    /// Inherit from this class to accommodate robot-specific data
     /// </summary>
     public class SensorsData : ISensorsData
     {
@@ -171,6 +172,10 @@ namespace slg.LibSensors
             return (((double)(DateTime.Now.Ticks - TargetingCameraTimestamp)) / ((double)TimeSpan.TicksPerSecond)) < 1.0d;
         }
 
+        /// <summary>
+        /// override ToString() to accommodate robot-specific data
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             // "Timestamp" properties are updated when data changes, not when a valid reading comes in.
@@ -180,11 +185,12 @@ namespace slg.LibSensors
 
             bool isCameraValid = IsTargetingCameraDataValid();
 
-            //return string.Format("IR:   left: {0:0.00}   right: {1:0.00}   front: {2:0.00}   rear: {3:0.00}     SONAR:   left: {4:0.00}   right: {5:0.00}     ENCODERS:   left: {6}   right: {7}   \r\nBATTERY: {8}   COMPASS: {9:0}   Pixy: {10:0} {11:0}",
-            //                        IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters, RangerFrontLeftMeters, RangerFrontRightMeters, WheelEncoderLeftTicks, WheelEncoderRightTicks, batteryLevel, CompassHeadingDegrees,
-            //                        (isPixyValid ? TargetingCameraBearingDegrees : null), (isPixyValid ? TargetingCameraInclinationDegrees : null));
+            return ""
 
-            return string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    ",
+            + string.Format("IR:   left: {0:0.00}   right: {1:0.00}   front: {2:0.00}   rear: {3:0.00}     ",
+                                    IrLeftMeters, IrRightMeters, IrFrontMeters, IrRearMeters
+                                )
+            + string.Format("SONARS FRONT:   left: {0:0.00}   right: {1:0.00}    SONARS REAR:   left: {2:0.00}   right: {3:0.00}    ENCODERS:   left: {4}   right: {5}    ",
                                     RangerFrontLeftMeters, RangerFrontRightMeters, RangerRearLeftMeters, RangerRearRightMeters, 
                                     WheelEncoderLeftTicks, WheelEncoderRightTicks
                                 )

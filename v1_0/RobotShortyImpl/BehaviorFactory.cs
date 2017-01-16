@@ -31,9 +31,12 @@ namespace slg.RobotShortyImpl
 {
     public enum BehaviorCompositionType
     {
+        None,
         JoystickAndStop,
         CruiseAndStop,
         AroundTheBlock,
+        ChaseColorBlob,
+        RouteFollowing,
         Escape
     }
 
@@ -50,10 +53,18 @@ namespace slg.RobotShortyImpl
 
         private ISpeaker speaker;
 
+        // related to "Route Following""
+        // On the PC: @"C:\Users\sergei\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml";
+        // this is how to mount Raspberry Pi SD card: \\172.16.1.175\c$
+        // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppData\Local\Packages\RobotPluckyPackage_sjh4qacv6p1wm\LocalState\MyTrack.xml
+        // full path: \\172.16.1.175\c$\Data\Users\DefaultAccount\AppxLayouts\RobotPluckyPackageVS.Debug_ARM.sergei\ParkingLot1.waypoints
+        // do not supply path, just the file name:
+        public string TrackFileName { private get; set; }
+
         // related to "Around the block":
-        DateTime activatedFW;
-        double initialCompassHeadingDegrees;
-        bool isFinishedFW;
+        private DateTime activatedFW;
+        private double initialCompassHeadingDegrees;
+        private bool isFinishedFW;
 
         public BehaviorFactory(SubsumptionTaskDispatcher disp, IDriveGeometry driveGeom, ISpeaker speaker)
         {
@@ -102,7 +113,7 @@ namespace slg.RobotShortyImpl
                     //    speaker = this.speaker
                     //});
 
-                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 10.0d, 10.0d)
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 20.0d, 20.0d)
                     {
                         name = "BehaviorGoToAngle",
                         speaker = this.speaker
@@ -118,7 +129,7 @@ namespace slg.RobotShortyImpl
                     {
                         name = "BehaviorFollowWall",
                         speaker = this.speaker,
-                        cruiseSpeed = 15.0d,
+                        cruiseSpeed = 20.0d,
                         avoidanceTurnFactor = 50.0d,
                         //distanceToWallMeters = 0.17d,
                         //distanceToWallMeters = 0.25d,
@@ -157,7 +168,7 @@ namespace slg.RobotShortyImpl
                     {
                         name = "BehaviorFollowWall",
                         speaker = this.speaker,
-                        cruiseSpeed = 15.0d,
+                        cruiseSpeed = 20.0d,
                         avoidanceTurnFactor = 50.0d,
                         distanceToWallMeters = 0.17d,
                         //BehaviorDeactivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
@@ -216,6 +227,85 @@ namespace slg.RobotShortyImpl
                         BehaviorActivateCondition = bd => { return true; }
                     });
 
+                    break;
+
+                case BehaviorCompositionType.ChaseColorBlob:
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToPixy(driveGeometry) {
+                        name = "BehaviorGoToPixy",
+                        speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 100.0d, 100.0d)
+                    {
+                        name = "BehaviorGoToAngle",
+                        speaker = this.speaker
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorStopShorty()
+                    {
+                        name = "BehaviorStop",
+                        speaker = this.speaker,
+                        tresholdStopMeters = 0.6d,
+                        //BehaviorActivateCondition = bd => { return bd.driveInputs != null && bd.sensorsData != null && TooClose(bd); }
+                        //BehaviorActivateCondition = bd => { return false; }
+                    });
+
+                    //subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
+                    //{
+                    //    name = "Escape",
+                    //    speaker = this.speaker,
+                    //    BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                    //    BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
+                    //    BehaviorTerminateCondition = bd => { return false; }   // do not terminate
+                    //});
+
+                    break;
+
+                case BehaviorCompositionType.RouteFollowing:
+
+                    subsumptionDispatcher.Dispatch(new BehaviorRouteFollowing(driveGeometry, this.speaker, TrackFileName, 0.3d)
+                    {
+                        name = "BehaviorRouteFollowing",
+                        closeEnoughMeters = 0.15d
+                    });
+
+                    subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 30.0d, 30.0d)
+                    {
+                        name = "BehaviorGoToAngle",
+                        speaker = this.speaker
+                    });
+
+                    //subsumptionDispatcher.Dispatch(new BehaviorAvoidObstacles(driveGeometry)
+                    //{
+                    //    name = "BehaviorAvoidObstacles",
+                    //    speaker = this.speaker
+                    //});
+
+                    //subsumptionDispatcher.Dispatch(new BehaviorStopShorty()
+                    //{
+                    //    name = "BehaviorStop",
+                    //    speaker = this.speaker,
+                    //    tresholdStopMeters = 0.2d
+                    //});
+
+                    //subsumptionDispatcher.Dispatch(new BehaviorBackAndTurn(driveGeometry)
+                    //{
+                    //    name = "Escape",
+                    //    speaker = this.speaker,
+                    //    BehaviorActivateCondition = bd => { return BehaviorBase.getCoordinatorData().EnablingRequest.StartsWith("Escape"); },
+                    //    BehaviorDeactivateCondition = bd => { return true; },  // deactivate after one cycle
+                    //    BehaviorTerminateCondition = bd => { return false; }   // do not terminate
+                    //});
+
+                    //subsumptionDispatcher.Dispatch(new BehaviorAmIStuck()
+                    //{
+                    //    name = "BehaviorAmIStuck",
+                    //    speaker = this.speaker
+                    //});
+
+                    BehaviorBase.getCoordinatorData().ClearEnablingRequest();
+                    BehaviorBase.getCoordinatorData().ClearGrabbingBehavior();
                     break;
 
                 case BehaviorCompositionType.JoystickAndStop:

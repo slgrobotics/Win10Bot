@@ -78,7 +78,7 @@ namespace slg.RobotBase.Bases
 
         public override string ToString()
         {
-            return string.Format("Pose: {0}    Theta: {1} degrees", base.ToString(), Math.Round(Direction.to360fromRad(ThetaRadians)))
+            return string.Format("Pose: {0}    Theta: {1} degrees", base.ToString(), Math.Round(Direction.to360fromRad(ThetaRadians + Math.PI / 2.0d)))
                 + "    GeoPos: " + geoPosition.ToStringExact()
                 + "    Dir: " + direction;
         }

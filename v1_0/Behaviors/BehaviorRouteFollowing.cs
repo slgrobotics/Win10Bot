@@ -56,11 +56,14 @@ namespace slg.Behaviors
             }
         }
 
+        public double closeEnoughMeters = 2.0d;     // how close from the waypoint we decide we've passed it.
+
         private const double WAYPOINT_CANTREACH_SECONDS = 30;
 
         private string savedTrackFileName = "MyTrack.xml";
         private Track missionTrack;
         private Trackpoint nextWp = null;
+        private double powerFactor;
 
         /// <summary>
         /// 
@@ -68,10 +71,11 @@ namespace slg.Behaviors
         /// <param name="ddg"></param>
         /// <param name="speaker"></param>
         /// <param name="trackFileName">can be null, for a saved track</param>
-        public BehaviorRouteFollowing(IDriveGeometry ddg, ISpeaker speaker, string trackFileName)
+        public BehaviorRouteFollowing(IDriveGeometry ddg, ISpeaker speaker, string trackFileName, double powerFactor=1.0d)
             : base(ddg)
         {
             this.speaker = speaker;
+            this.powerFactor = powerFactor;
 
             BehaviorActivateCondition = bd =>
             {
@@ -85,7 +89,7 @@ namespace slg.Behaviors
 
             if (String.IsNullOrWhiteSpace(trackFileName))
             {
-                speaker.Speak("Loading saved track");
+                //speaker.Speak("Loading saved track");
                 try
                 {
                     missionTrack = null;
@@ -98,7 +102,7 @@ namespace slg.Behaviors
                     if (track != null)
                     {
                         missionTrack = track;
-                        speaker.Speak("Loaded file " + missionTrack.Count + " trackpoints");
+                        //speaker.Speak("Loaded file " + missionTrack.Count + " trackpoints");
                     }
                 }
                 catch (Exception ex)
@@ -173,7 +177,7 @@ namespace slg.Behaviors
                     Direction dirToWp = nextWp.directionToWp(behaviorData.robotPose.geoPosition, behaviorData.robotPose.direction);
                     Distance distToWp = nextWp.distanceToWp(behaviorData.robotPose.geoPosition);
 
-                    if (distToWp.Meters < 2.0d)
+                    if (distToWp.Meters < closeEnoughMeters)
                     {
                         nextWp.trackpointState = TrackpointState.Passed;     // will be ignored on the next cycle
                         speaker.Speak("Waypoint " + nextWp.number + " passed");
@@ -189,15 +193,16 @@ namespace slg.Behaviors
                         goalBearingRelativeDegrees = dirToWp.bearingRelative.Value;       // update robotState
                         goalDistanceMeters = distToWp.Meters;
 
-                        Debug.WriteLine(string.Format("IP: Trackpoint {0}  distToWp.Meters= {1}", nextWp.number, distToWp.Meters));
+                        Debug.WriteLine(string.Format("IP: Trackpoint {0}  abs bearing= {1}  distToWp.Meters= {2}", nextWp.number, dirToWp.bearing, distToWp.Meters));
 
                         if (!nextWp.estimatedTimeOfArrival.HasValue)
                         {
                             nextWp.trackpointState = TrackpointState.SelectedAsTarget;
-                            double maxVelocityMSec = ToVelocity(behaviorData.robotState.powerLevelPercent);  // m/sec                    
+                            double maxVelocityMSec = ToVelocity(behaviorData.robotState.powerLevelPercent * powerFactor);  // m/sec                    
                             double timeToReachSec = distToWp.Meters / maxVelocityMSec;
                             nextWp.estimatedTimeOfArrival = DateTime.Now.AddSeconds(timeToReachSec);
-                            speaker.Speak("Next trackpoint " + Math.Round(distToWp.Meters) + " meters away. I expect reaching it in " + Math.Round(timeToReachSec) + " seconds");
+                            speaker.Speak("Next " + Math.Round(distToWp.Meters) + " " + Math.Round(timeToReachSec));
+                            //speaker.Speak("Next trackpoint " + Math.Round(distToWp.Meters) + " meters away. I expect reaching it in " + Math.Round(timeToReachSec) + " seconds");
                         }
                     }
 

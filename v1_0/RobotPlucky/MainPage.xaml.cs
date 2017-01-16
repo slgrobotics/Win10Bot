@@ -703,9 +703,10 @@ namespace RobotPlucky
         #region Speak
 
         // ISpeaker implementation
-        public async void Speak(string whatToSay, int voice = 0)
+        public void Speak(string whatToSay, int voice = 0)
         {
-            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => speakerImpl.Speak(whatToSay, voice));
+            // no wait here.
+            Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => speakerImpl.Speak(whatToSay, voice));
         }
 
         #endregion // Speak

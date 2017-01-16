@@ -88,32 +88,48 @@ namespace slg.LibRobotDrive
         /// <summary>
         /// calculates robot pose change based on current wheel encoders ticks
         /// </summary>
-        /// <param name="robotPose">will be adjusted based on wheels travel</param>
-        /// <param name="encoderTicks">wheel encoder ticks - left, right...</param>
-        public void OdometryCompute(IRobotPose robotPose, long[] encoderTicks)
+        /// <param name="robotPose">Used to retrieve current position only. Will be adjusted in SLAM based on wheels travel.</param>
+        /// <param name="encoderTicks">raw data - wheel encoder ticks - left, right...  - ignored if using hardwareBrickOdometry</param>
+        /// <returns>Displacement - to be applied in SLAM module. Can return null if there is no displacement</returns>
+        public IDisplacement OdometryCompute(IRobotPose robotPose, long[] encoderTicks)
         {
+            IDisplacement ret = null;    // null will be returned if there is no displacement
+
             if (hardwareBrickOdometry != null)
             {
-                robotPose.XMeters = hardwareBrickOdometry.XMeters;
-                robotPose.YMeters = hardwareBrickOdometry.YMeters;
-                robotPose.ThetaRadians = hardwareBrickOdometry.ThetaRadians;
+                // already calculated odometry comes from the hardware brick (i.e. Arduino)
+
+                double dx = hardwareBrickOdometry.XMeters - robotPose.XMeters;
+                double dy = hardwareBrickOdometry.YMeters - robotPose.YMeters;
+                double dz = 0.0d;
+                double dth = hardwareBrickOdometry.ThetaRadians - robotPose.ThetaRadians;
+
+                if (dx != 0.0d || dy != 0.0d  || dz != 0.0d || dth != 0.0d)
+                {
+                    ret = new Displacement(dx, dy, dz, dth);
+                }
             }
             else
             {
-                Displacement disp = odometry.Process(encoderTicks);
+                // we have wheels encoders data and must calculate odometry here:
+
+                DisplacementOdometry disp = odometry.Process(encoderTicks);
 
                 if (disp.halfPhi != 0.0d || disp.dCenter != 0.0d)
                 {
-                    double theta = robotPose.ThetaRadians + disp.halfPhi;   // radians
+                    double thetaMid = robotPose.ThetaRadians + disp.halfPhi;   // radians in the middle of the turn
 
                     // calculate displacement in the middle of the turn:
-                    double dX = disp.dCenter * Math.Cos(theta);      // meters
-                    double dY = disp.dCenter * Math.Sin(theta);      // meters
+                    double dx = disp.dCenter * Math.Cos(thetaMid);      // meters
+                    double dy = disp.dCenter * Math.Sin(thetaMid);      // meters
+                    double dz = 0.0d;
+                    double dThetaRadians = disp.halfPhi * 2.0d;         // actual turn
 
-                    robotPose.translate(dX, dY);
-                    robotPose.rotate(disp.halfPhi * 2.0d);
+                    ret = new Displacement(dx, dy, dz, dThetaRadians);
                 }
             }
+
+            return ret;
         }
 
         /// <summary>

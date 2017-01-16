@@ -16,6 +16,7 @@
  */
 
 using slg.RobotAbstraction.Sensors;
+using slg.LibMapping;
 
 namespace slg.RobotBase.Interfaces
 {
@@ -51,6 +52,7 @@ namespace slg.RobotBase.Interfaces
         /// </summary>
         /// <param name="robotPose">will be adjusted based on wheels travel</param>
         /// <param name="encoderTicks">wheel encoder ticks - left, right...</param>
-        void OdometryCompute(IRobotPose robotPose, long[] encoderTicks);
+        /// <returns>Displacement - to be applied in SLAM module</returns>
+        IDisplacement OdometryCompute(IRobotPose robotPose, long[] encoderTicks);
     }
 }

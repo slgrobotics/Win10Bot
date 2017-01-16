@@ -19,6 +19,7 @@ using System;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using System.Xml;
 using Windows.Storage;
 
 namespace slg.LibSystem
@@ -33,10 +34,14 @@ namespace slg.LibSystem
         public static async void Save(string FileName, T _Data)
         {
             MemoryStream _MemoryStream = new MemoryStream();
-            DataContractSerializer Serializer = new DataContractSerializer(typeof(T));
-            Serializer.WriteObject(_MemoryStream, _Data);
 
-            Task.WaitAll();
+            XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
+            xmlWriterSettings.Indent = true;
+            XmlWriter writer = XmlDictionaryWriter.Create(_MemoryStream, xmlWriterSettings);
+
+            DataContractSerializer Serializer = new DataContractSerializer(typeof(T));
+            Serializer.WriteObject(writer, _Data);
+            writer.Flush();
 
             StorageFile _File = await ApplicationData.Current.LocalFolder.CreateFileAsync(FileName, CreationCollisionOption.ReplaceExisting);
 

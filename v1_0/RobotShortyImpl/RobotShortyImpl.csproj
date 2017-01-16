@@ -109,6 +109,8 @@
   <ItemGroup>
     <Compile Include="BehaviorFactory.cs" />
     <Compile Include="Behaviors\BehaviorStopShorty.cs" />
+    <Compile Include="JoystickCommandsShorty.cs" />
+    <Compile Include="SensorsDataShorty.cs" />
     <Compile Include="ShortyTheRobot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RobotShortyHardwareBridge.cs" />
@@ -155,6 +157,10 @@
     <ProjectReference Include="..\LibSensors\LibSensors.csproj">
       <Project>{f696ae4e-ebb6-41ea-a39c-5e3fdbdad983}</Project>
       <Name>LibSensors</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LibSystem\LibSystem.csproj">
+      <Project>{2d8b251f-77b3-4f13-bea9-21e1ed5e0936}</Project>
+      <Name>LibSystem</Name>
     </ProjectReference>
     <ProjectReference Include="..\RobotAbstraction\RobotAbstraction.csproj">
       <Project>{f6eb1c7d-0cf0-4f09-846e-34b2843e3baf}</Project>

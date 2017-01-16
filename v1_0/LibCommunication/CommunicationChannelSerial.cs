@@ -48,14 +48,21 @@ namespace slg.LibCommunication
 
         private SerialDevice serialDevice;
         private CancellationTokenSource cancellationTokenSource;
+        private bool canCancelonError;
 
         private BufferBlock<String> linesReceivedBuffer;    // helps assemble partial and multiple lines into single lines
         private StringBuilder sb;   // for received characters to be broken into lines, with NewLine as separator
 
-        public CommunicationChannelSerial(CancellationTokenSource cts)
+        /// <summary>
+        /// Serial Communication Channel constructor
+        /// </summary>
+        /// <param name="cts">Cancellation Token Source allows to gracefully shutdown the channel</param>
+        /// <param name="canCancelonError">if true - on error allows to request cancelation so that other devices can also shut down</param>
+        public CommunicationChannelSerial(CancellationTokenSource cts, bool canCancelonError = true)
         {
             // We need cancellation token object to close I/O operations when closing the device
-            cancellationTokenSource = cts;
+            this.cancellationTokenSource = cts;
+            this.canCancelonError = canCancelonError;
 
             NewLineIn = "\r";   // default for read
             NewLineOut = "\r";  // default for write
@@ -330,7 +337,7 @@ namespace slg.LibCommunication
 
         private void CancelAllTasks()
         {
-            if (cancellationTokenSource != null && !cancellationTokenSource.IsCancellationRequested)
+            if (canCancelonError && cancellationTokenSource != null && !cancellationTokenSource.IsCancellationRequested)
             {
                 cancellationTokenSource.Cancel();
             }

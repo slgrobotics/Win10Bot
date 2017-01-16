@@ -114,8 +114,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Direction.cs" />
+    <Compile Include="Displacement.cs" />
     <Compile Include="Distance.cs" />
     <Compile Include="GeoPosition.cs" />
+    <Compile Include="IDisplacement.cs" />
     <Compile Include="MapperSettings.cs" />
     <Compile Include="MavLinkCompatibility.cs" />
     <Compile Include="Projection.cs" />

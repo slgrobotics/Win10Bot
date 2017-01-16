@@ -46,8 +46,19 @@ namespace slg.RobotBase.Interfaces
 
         void rotate(double alphaRad);
 
+        /// <summary>
+        /// resets X and Y to 0
+        /// </summary>
         void resetXY();
 
+        /// <summary>
+        /// resets ThetaRadians to 0
+        /// </summary>
         void resetRotation();
+
+        /// <summary>
+        /// resets X, Y and ThetaRadians to 0
+        /// </summary>
+        void reset();
     }
 }

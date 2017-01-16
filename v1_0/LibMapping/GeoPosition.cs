@@ -93,8 +93,8 @@ namespace slg.LibMapping
 
             // a grad square is cos(latitude) thinner, we need latitude in radians:
             double midLatRad = ((from.Lat + m_Y) / 2.0d) * Math.PI / 180.0d;            //double midLatRad = (this.add(from).m_Y / 2.0d) * Math.PI / 180.0d;
-            double latitudeFactor = Math.Cos(midLatRad);
-            double xMeters = Distance.METERS_PER_DEGREE * x * latitudeFactor;
+            double midLatitudeFactor = Math.Cos(midLatRad);
+            double xMeters = Distance.METERS_PER_DEGREE * x * midLatitudeFactor;
             double yMeters = Distance.METERS_PER_DEGREE * y;
             double meters = Math.Sqrt(xMeters * xMeters + yMeters * yMeters);
 
@@ -265,6 +265,23 @@ namespace slg.LibMapping
             m_Y += toDegreesY(byY);
 		}
 
+        // works only for small distances, within miles.
+        public void translate(Displacement by)
+		{
+            m_X += toDegreesX(by.dXMeters);
+            m_Y += toDegreesY(by.dYMeters);
+            m_H += by.dZMeters;
+		}
+
+        // horizontal degrees are shorter in meters as we go up the latitude:
+        public double latitudeFactor
+        {
+            get
+            {
+                return Math.Cos(this.Lat * Math.PI / 180.0d);
+            }
+        }
+
         // works only for small distances, within miles. For general case - when bearing is missing, or when we need to move towards bearing.
         public void translate(IDirection dir, IDistance by)
 		{
@@ -278,8 +295,8 @@ namespace slg.LibMapping
                 angle = (double)dir.bearing;
             }
 
-            m_X += toDegreesX(new Distance(range * Math.Sin(angle * Math.PI / 180.0d)));
-            m_Y += toDegreesY(new Distance(range * Math.Cos(angle * Math.PI / 180.0d)));
+            m_X += toDegreesX(range * Math.Sin(angle * Math.PI / 180.0d));
+            m_Y += toDegreesY(range * Math.Cos(angle * Math.PI / 180.0d));
 		}
 
         // works only for small distances, within miles. For rare cases when we have both heading and bearing, but want to move in the "heading" direction.
@@ -288,17 +305,20 @@ namespace slg.LibMapping
             double range = by.Meters;
             double angle = (double)dir.heading; // degrees
 
-            m_X += toDegreesX(new Distance(range * Math.Sin(angle * Math.PI / 180.0d)));
-            m_Y += toDegreesY(new Distance(range * Math.Cos(angle * Math.PI / 180.0d)));
+            m_X += toDegreesX(range * Math.Sin(angle * Math.PI / 180.0d));
+            m_Y += toDegreesY(range * Math.Cos(angle * Math.PI / 180.0d));
 		}
 
         // converts distance along the latitude line (X) into degrees
         public double toDegreesX(IDistance d)
         {
-            // horizontal degrees are shorter in meters as we go up the latitude:
-            double latitudeFactor = Math.Cos(this.Lat * Math.PI / 180.0d);
-
             return d.Meters / Distance.METERS_PER_DEGREE / latitudeFactor;
+        }
+
+        // converts distance along the latitude line (X) into degrees
+        public double toDegreesX(Double xMeters)
+        {
+            return xMeters / Distance.METERS_PER_DEGREE / latitudeFactor;
         }
 
         // converts distance along the longitude line (Y) into degrees
@@ -306,6 +326,20 @@ namespace slg.LibMapping
         {
             // vertical degrees are the same always:
             return d.Meters / Distance.METERS_PER_DEGREE;
+        }
+
+        // converts distance along the longitude line (Y) into degrees
+        public double toDegreesY(double yMeters)
+        {
+            // vertical degrees are the same always:
+            return yMeters / Distance.METERS_PER_DEGREE;
+        }
+
+        static public Displacement operator - (GeoPosition what, IGeoPosition by)
+        {
+            return new Displacement((what.Lng - by.Lng) * Distance.METERS_PER_DEGREE * what.latitudeFactor,
+                                    (what.Lat - by.Lat) * Distance.METERS_PER_DEGREE,
+                                     what.Elev - by.Elev);
         }
 
         public override int GetHashCode()
@@ -434,7 +468,7 @@ namespace slg.LibMapping
             return new GeoPosition(m_X + a.Lng, m_Y + a.Lat, m_H + a.Elev);
 		}
 
-		public GeoPosition subtract(IGeoPosition a, bool spans180)
+		public GeoPosition subtract(IGeoPosition a, bool spans180 = false)
 		{
             double x = a.Lng;
 			double dx = m_X - x;
@@ -467,10 +501,15 @@ namespace slg.LibMapping
 
 		public string ToStringExact()
 		{
-			return String.Format("Lat={0:N9}   Lon={1:N9}", Lat, Lng);
-		}
+            // for debugging - print displacement:
+            double lng0 = -117.671550d;
+            double lat0 = 33.600222d;
 
-		public override string ToString()
+			//return String.Format("Lat={0:N9}   Lon={1:N9}", Lat, Lng);
+            return String.Format("Lat={0:N9}   Lon={1:N9}", Lat - lat0, Lng - lng0);
+        }
+
+        public override string ToString()
 		{
 			return toString0(false, MapperSettings.coordStyle);
 		}
@@ -841,25 +880,25 @@ namespace slg.LibMapping
 		{
 			double dAbsX = Math.Abs(m_X);
 			double dFloorX = Math.Floor(dAbsX);
-			double dMinX = (dAbsX - dFloorX) * 60.0;
+			double dMinX = (dAbsX - dFloorX) * 60.0d;
 			long degX = (long)Math.Round(dFloorX);
 			long minX = (long)Math.Round(Math.Floor(dMinX));
-			long secX = (long)Math.Round(Math.Floor((dMinX - (double)minX) * 60.0));
+			long secX = (long)Math.Round(Math.Floor((dMinX - (double)minX) * 60.0d));
 
 			double dAbsY = Math.Abs(m_Y);
 			double dFloorY = Math.Floor(dAbsY);
-			double dMinY = (dAbsY - dFloorY) * 60.0;
+			double dMinY = (dAbsY - dFloorY) * 60.0d;
 			long degY = (long)Math.Round(dFloorY);
 			long minY = (long)Math.Round(Math.Floor(dMinY));
-			long secY = (long)Math.Round(Math.Floor((dMinY - (double)minY) * 60.0));
+			long secY = (long)Math.Round(Math.Floor((dMinY - (double)minY) * 60.0d));
 
 			string mxfiller = minX > 9 ? " " : " 0";
 			string myfiller = minY > 9 ? " " : " 0";
 			string sxfiller = secX > 9 ? " " : " 0";
 			string syfiller = secY > 9 ? " " : " 0";
-			return (m_X > 0.0 ? "E " : "W ") + degX
+			return (m_X > 0.0d ? "E " : "W ") + degX
 				+ mxfiller + minX + sxfiller + secX +
-				(m_Y > 0.0 ? " N " : " S ") + degY
+				(m_Y > 0.0d ? " N " : " S ") + degY
 				+ myfiller + minY + syfiller + secY +
 				" " + m_H;
 		}

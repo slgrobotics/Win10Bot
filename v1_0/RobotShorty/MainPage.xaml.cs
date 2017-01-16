@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Text;
 
+using Windows.System;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
@@ -112,10 +113,23 @@ namespace RobotShorty
                             try
                             {
                                 // inside the same process isolation does not block access. Other processes on the same computer are blocked.
-                                // use another computer to hit this URL in the browser: 
-                                string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/robotUI.html"));
-                                //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/robotUI.html"));
-                                Debug.WriteLine("HttpClient: got response: " + response);
+                                // use another computer to hit this URL in the browser. 
+
+                                while (true)    // using keep-alive
+                                {
+                                    await Task.Delay(5000);
+
+                                    // alternative way:
+                                    //Send the GET request
+                                    //HttpResponseMessage httpResponse = await client.GetAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
+                                    //httpResponse.EnsureSuccessStatusCode();
+                                    //string response = await httpResponse.Content.ReadAsStringAsync();
+
+
+                                    string response = await client.GetStringAsync(new Uri("http://localhost:" + HTTP_SERVER_PORT + "/DateTime"));
+                                    //string response = await client.GetStringAsync(new Uri("http://172.16.1.201:" + HTTP_SERVER_PORT + "/DateTime"));
+                                	Debug.WriteLine("HttpClient: got response: " + response);
+								}
                             }
                             catch (Exception exc)
                             {
@@ -229,6 +243,11 @@ namespace RobotShorty
             OpenCloseButton.IsEnabled = true;
         }
 
+        private void ShutdownButtonButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShutdownComputer();
+        }
+
         /// <summary>
         /// click on the button that selects the serial port and then starts backround worker, thus starting the robot.
         /// </summary>
@@ -236,8 +255,7 @@ namespace RobotShorty
         /// <param name="e"></param>
         private async void OpenCloseButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
+            try {
                 OpenCloseButton.IsEnabled = false;
 
                 if (isWorkerRunning)
@@ -326,8 +344,7 @@ namespace RobotShorty
             Speak("connecting");
             await Task.Delay(1000);
 
-            try
-            {
+            try {
                 await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () => await doOpenDevice(deviceId));
 
                 return isWorkerRunning && shorty != null && !shorty.isCommError;
@@ -576,6 +593,26 @@ namespace RobotShorty
 
         #endregion // Tickers to periodically run robot logic and service control devices (joystick).
 
+        #region IComputerManager implementation
+
+        /// <summary>
+        /// IComputerManager implementation
+        /// </summary>
+        public void ShutdownComputer()
+        {
+            try
+            {
+                ShutdownManager.BeginShutdown(ShutdownKind.Shutdown, TimeSpan.FromSeconds(1.0));
+                Speak("shutting down");
+            }
+            catch
+            {
+                Speak("Cannot shut down this computer");
+            }
+        }
+
+        #endregion // IComputerManager implementation
+
         #region Display all data on the UI
 
         private DateTime lastBatteryVoltageAlarmed = DateTime.Now;
@@ -649,11 +686,6 @@ namespace RobotShorty
         public async void Speak(string whatToSay, int voice = 0)
         {
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => speakerImpl.Speak(whatToSay, voice));
-        }
-
-        public void ShutdownComputer()
-        {
-            Speak("Shutdown Computer not possible");
         }
 
         #endregion // Speak
