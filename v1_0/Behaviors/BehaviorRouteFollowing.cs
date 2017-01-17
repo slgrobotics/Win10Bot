@@ -29,6 +29,7 @@ using slg.RobotBase.Interfaces;
 using slg.LibMapping;
 using slg.LibSystem;
 using Windows.Foundation;
+using slg.LibRobotMath;
 
 namespace slg.Behaviors
 {
@@ -56,14 +57,19 @@ namespace slg.Behaviors
             }
         }
 
-        public double closeEnoughMeters = 2.0d;     // how close from the waypoint we decide we've passed it.
-
-        private const double WAYPOINT_CANTREACH_SECONDS = 30;
+        public double closeEnoughMeters = 2.0d;                 // how close from the waypoint we decide we've passed it.
+        public double waitOnTrackpointsSeconds = 3.0d;          // how long to wait on trackpoint
+        public double waypointCantReachSeconds = 30.0d;         // abandon a trackpoint and go to next if this timeout expires
+        public double turnFactor = 20.0d;                       // how aggressively we turn towards a trackpoint pose heading
+        public double trackpointHeadingToleranceDegrees = 5.0d; // we stop the turn when heading is within this error
+        public double waitOnTurnSeconds = 30.0d;                // max time allowed for turn
 
         private string savedTrackFileName = "MyTrack.xml";
         private Track missionTrack;
         private Trackpoint nextWp = null;
         private double powerFactor;
+        private DateTime? stopStartedTime = null;
+        private DateTime turnStartedTime;
 
         /// <summary>
         /// 
@@ -116,6 +122,7 @@ namespace slg.Behaviors
                     missionTrack = new Track();
                 }
                 nextWp = missionTrack.nextTargetWp;
+                stopStartedTime = null;
             }
             else
             {
@@ -157,12 +164,12 @@ namespace slg.Behaviors
                     yield return RobotTask.Continue;    // dormant state - no need to calculate
                 }
 
-                // we have next trackpoint to go to:
-
                 if (MustExit || MustTerminate)
                 {
                     break;
                 }
+
+                // we have next trackpoint to go to, enter the work loop:
 
                 //int i = 0;
                 while (!MustDeactivate && !MustExit && !MustTerminate)
@@ -179,11 +186,57 @@ namespace slg.Behaviors
 
                     if (distToWp.Meters < closeEnoughMeters)
                     {
-                        nextWp.trackpointState = TrackpointState.Passed;     // will be ignored on the next cycle
-                        speaker.Speak("Waypoint " + nextWp.number + " passed");
+                        nextWp.trackpointState = TrackpointState.Passed;            // trackpoint will be ignored on the next cycle
+                        //speaker.Speak("Waypoint " + nextWp.number + " reached");
+
+                        if(nextWp.headingDegrees.HasValue)
+                        {
+                            // if the trackpoint was saved with a heading, we need to turn to that heading:
+                            speaker.Speak("turning to " + Math.Round(nextWp.headingDegrees.Value));
+
+                            SetGrabByMe();
+                            turnStartedTime = DateTime.Now;
+
+                            // TODO: we overshoot a lot here. Maybe having a PID controller would help.
+                            while (Math.Abs(behaviorData.robotPose.direction.heading.Value - nextWp.headingDegrees.Value) > trackpointHeadingToleranceDegrees
+                                    && (DateTime.Now - turnStartedTime).TotalSeconds < waitOnTurnSeconds)
+                            {
+                                double heading = behaviorData.robotPose.direction.heading.Value;    // robot's heading by SLAM
+                                double desiredTurnDegrees = DirectionMath.to180(heading - nextWp.headingDegrees.Value);
+                                setSpeedAndTurn(0.0d, -turnFactor * Math.Sign(desiredTurnDegrees));
+                                yield return RobotTask.Continue;    // let the chain work
+                            }
+
+                            if(Math.Abs(behaviorData.robotPose.direction.heading.Value - nextWp.headingDegrees.Value) > trackpointHeadingToleranceDegrees)
+                            {
+                                speaker.Speak("Error: turning to " + Math.Round(nextWp.headingDegrees.Value) + " failed");
+                            }
+
+                            ClearGrab();
+                        }
+
+                        // pause and declare to other behaviors that we reached trackpoing:
+                        if (stopStartedTime == null)
+                        {
+                            speaker.Speak("waiting");
+                            stopStartedTime = DateTime.Now;
+                            while ((DateTime.Now - stopStartedTime.Value).TotalSeconds < waitOnTrackpointsSeconds)
+                            {
+                                goalBearingRelativeDegrees = null;  // BehaviorGoToAngle will stop the robot
+                                goalDistanceMeters = null;
+                                getCoordinatorData().EnablingRequest = "trackpoint";    // let other behaviors know we are waiting on a trackpoint
+                                yield return RobotTask.Continue;    // wait a bit on the trackpoint
+                            }
+                            stopStartedTime = null;
+                        }
+
+                        if (missionTrack.nextTargetWp != null)
+                        {
+                            speaker.Speak("proceeding");
+                        }
                     }
                     else if (nextWp.estimatedTimeOfArrival.HasValue
-                        && (DateTime.Now - nextWp.estimatedTimeOfArrival.Value).TotalSeconds > WAYPOINT_CANTREACH_SECONDS)
+                        && (DateTime.Now - nextWp.estimatedTimeOfArrival.Value).TotalSeconds > waypointCantReachSeconds)
                     {
                         nextWp.trackpointState = TrackpointState.CouldNotReach;     // will be ignored on the next cycle
                         speaker.Speak("Waypoint " + nextWp.number + " could not reach");

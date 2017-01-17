@@ -28,11 +28,10 @@ namespace slg.LibMapping
 {
     public interface IDirection : ICloneable
     {
-        // everything in degrees
+        double? distanceToGoalMeters { get; set; }
+        // everything in degrees:
         double? heading { get; set; }
         double? bearing { get; set; }
-        double? distanceToGoalMeters { get; set; }
-        double? course { get; set; }
         double? bearingRelative { get; set; }
         double? turnRelative { get; }
     }
@@ -41,6 +40,11 @@ namespace slg.LibMapping
     //[Serializable]
     public class Direction : DirectionMath, IDirection
     {
+        /// <summary>
+        /// distance to goal, meters; usually to target or obstacle; can be null, but not negative.
+        /// </summary>
+        public double? distanceToGoalMeters { get; set; }
+
         // see http://answers.yahoo.com/question/index?qid=20081117160002AADh95q
         // see http://www.rvs.uni-bielefeld.de/publications/Incidents/DOCS/Research/Rvs/Misc/Additional/Reports/adf.gif
 
@@ -51,38 +55,40 @@ namespace slg.LibMapping
             Relative bearing is the angle in degrees (clockwise) between the heading of the aircraft and the destination or nav aid.
          */
 
+        private double? _heading;
+
         /// <summary>
         /// Heading is the direction the robot is pointing, degrees; same as "course" for a ground platform; true North is "0"
+        /// Heading is in degrees, when not null - guaranteed to be between 0...360
         /// </summary>
-        public double? heading { get; set; }
-
-        /// <summary>
-        /// Bearing is the angle in degrees (clockwise) between North and the direction to the destination or nav aid.
-        /// Degrees; usually to target or obstacle; absolute, related to true North
-        /// </summary>
-        public double? bearing { get; set; }
-
-        /// <summary>
-        /// distance to goal, meters; usually to target or obstacle; can be null, but not negative.
-        /// </summary>
-        public double? distanceToGoalMeters { get; set; }
-
-
-        public double? course       // degrees, guaranteed to be between 0...360
+        public double? heading
         {
             get
             {
-                return to360(heading);
+                return to360(_heading);  // can be null if heading is null
             }
             set
             {
-                heading = value % 360.0d;
-                if (heading < 0.0d)
+                if (value.HasValue)
                 {
-                    heading += 360.0d;
+                    _heading = value % 360.0d;
+                    if (_heading < 0.0d)
+                    {
+                        _heading += 360.0d;
+                    }
+                }
+                else
+                {
+                    _heading = null;
                 }
             }
         }
+
+        /// <summary>
+        /// Bearing is the angle in degrees (clockwise) between true North and the direction to the destination or nav aid.
+        /// Bearing is in degrees; usually to target or obstacle; absolute, related to true North
+        /// </summary>
+        public double? bearing { get; set; }
 
         public double? bearingRelative    // use only if heading is defined
         {
@@ -149,7 +155,7 @@ namespace slg.LibMapping
 
         public override string ToString()
         {
-            return string.Format("(h: {0:0.0}, b: {1:0.0})", course, bearing);
+            return string.Format("(h: {0:0.0}, b: {1:0.0})", heading, bearing);
         }
     }
 }

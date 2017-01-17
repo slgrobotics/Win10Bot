@@ -47,9 +47,9 @@ namespace slg.RobotShortyImpl
     {
         #region Parameters
 
-        private const double WHEEL_RADIUS_METERS = 0.0615d;          // actual measured diameter 0.123d
-        private const double WHEEL_BASE_METERS = 0.367d;             // actual measured 0.328d
-        private const double ENCODER_TICKS_PER_REVOLUTION = 430.0d;  // ticks per one wheel rotation 438
+        private const double WHEEL_RADIUS_METERS = 0.0615d;          // actual measured diameter 0.123d (don't adjust it for tuning)
+        private const double WHEEL_BASE_METERS = 0.367d;             // actual measured 0.328d  (adjust for turn test)
+        private const double ENCODER_TICKS_PER_REVOLUTION = 430.0d;  // ticks per one wheel rotation 438 (adjust for distance run test, increase when test X pos shows larger distance)
 
         /*
          * Some measurements: at motor controller input 100 (full speed) the wheels rotate at 130 rpm.

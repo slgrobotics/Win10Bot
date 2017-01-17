@@ -267,7 +267,7 @@ namespace slg.RobotShortyImpl
                     subsumptionDispatcher.Dispatch(new BehaviorRouteFollowing(driveGeometry, this.speaker, TrackFileName, 0.3d)
                     {
                         name = "BehaviorRouteFollowing",
-                        closeEnoughMeters = 0.15d
+                        closeEnoughMeters = 0.05d           // meters to be close enough to the trackpoint
                     });
 
                     subsumptionDispatcher.Dispatch(new BehaviorGoToAngle(driveGeometry, 30.0d, 30.0d)
